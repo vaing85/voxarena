@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 1580" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#555"/>
+    </marker>
+    <style>
+      .ttl{font-size:24px;font-weight:700;fill:#fff}
+      .h{font-size:16px;font-weight:700;fill:#222}
+      .bt{font-size:13px;font-weight:700;fill:#222}
+      .t{font-size:12.5px;fill:#333}
+      .s{font-size:11px;fill:#666}
+      .w{font-size:12.5px;fill:#fff;font-weight:600}
+      .box{fill:#fff;stroke-width:2;rx:8}
+      .arr{stroke:#555;stroke-width:2;fill:none;marker-end:url(#arr)}
+      .darr{stroke:#999;stroke-width:2;fill:none;stroke-dasharray:5 4;marker-end:url(#arr)}
+    </style>
+  </defs>
+
+  <!-- HEADER -->
+  <rect x="0" y="0" width="1280" height="60" fill="#1E2030"/>
+  <text x="40" y="39" class="ttl">VoxArena — API System &amp; Request Flow</text>
+
+  <!-- CLIENT -->
+  <rect x="540" y="88" width="200" height="46" rx="8" fill="#E7ECFF" stroke="#4C6EF5" stroke-width="2"/>
+  <text x="640" y="116" class="bt" text-anchor="middle">Client (web / mobile)</text>
+  <line x1="640" y1="134" x2="640" y2="176" class="arr"/>
+  <text x="652" y="162" class="s">HTTPS + Bearer JWT</text>
+
+  <!-- API CONTAINER -->
+  <rect x="150" y="180" width="980" height="250" rx="12" fill="#ECFDF5" stroke="#12B886" stroke-width="2"/>
+  <text x="172" y="208" class="h">Express API · src/index.ts</text>
+  <text x="172" y="232" class="s">pipeline:  express.json()  →  requireAuth (writes)  →  route handler  →  errorHandler (500)</text>
+
+  <!-- public -->
+  <rect x="175" y="250" width="300" height="165" rx="8" fill="#fff" stroke="#4C6EF5" stroke-width="2"/>
+  <text x="190" y="273" class="bt">Public (no auth)</text>
+  <text x="190" y="298" class="t">GET /songs · /songs/:id</text>
+  <text x="190" y="320" class="t">GET /leaderboard?songId  <tspan class="s">(ranked only)</tspan></text>
+  <text x="190" y="342" class="t">POST /players  <tspan class="s">(Phase 1 test)</tspan></text>
+  <text x="190" y="364" class="t">GET /health · /health/*</text>
+
+  <!-- authed -->
+  <rect x="500" y="250" width="610" height="165" rx="8" fill="#fff" stroke="#F59F00" stroke-width="2"/>
+  <text x="516" y="273" class="bt">Authed writes — requireAuth</text>
+  <text x="516" y="298" class="t">POST /performances   <tspan class="s">(record + finalize ranked)</tspan></text>
+  <text x="516" y="320" class="t">POST /matchmaking/ranked/join · /leave</text>
+  <text x="516" y="342" class="t">GET  /matchmaking/ranked/pending/:playerId</text>
+  <text x="516" y="364" class="t">GET  /bot/presets   ·   POST /bot/solo-vs-bot</text>
+
+  <!-- arrows API -> services -->
+  <line x1="275" y1="430" x2="275" y2="488" class="arr"/>
+  <line x1="545" y1="430" x2="545" y2="488" class="arr"/>
+  <line x1="800" y1="430" x2="800" y2="488" class="arr"/>
+  <line x1="1030" y1="430" x2="1030" y2="488" class="arr"/>
+
+  <!-- SERVICES -->
+  <rect x="150" y="490" width="250" height="98" rx="8" fill="#EAF1F7" stroke="#336791" stroke-width="2"/>
+  <text x="165" y="514" class="bt">PostgreSQL · Prisma</text>
+  <text x="165" y="538" class="t">players · songs</text>
+  <text x="165" y="558" class="t">performances · matches</text>
+  <text x="165" y="578" class="s">durable source of truth</text>
+
+  <rect x="420" y="490" width="250" height="98" rx="8" fill="#FDECEA" stroke="#D82C20" stroke-width="2"/>
+  <text x="435" y="514" class="bt">Redis · ioredis</text>
+  <text x="435" y="538" class="t">ranked queue (per song)</text>
+  <text x="435" y="558" class="t">pending-match markers</text>
+  <text x="435" y="578" class="s">optional — 503 if unset</text>
+
+  <rect x="690" y="490" width="220" height="98" rx="8" fill="#E9FBF2" stroke="#3ECF8E" stroke-width="2"/>
+  <text x="705" y="514" class="bt">Supabase</text>
+  <text x="705" y="538" class="t">verify access token</text>
+  <text x="705" y="558" class="t">HS256 / JWT secret</text>
+  <text x="705" y="578" class="s">API verifies, not issues</text>
+
+  <rect x="930" y="490" width="200" height="98" rx="8" fill="#F2F2F2" stroke="#555" stroke-width="2"/>
+  <text x="945" y="514" class="bt">Resend</text>
+  <text x="945" y="538" class="t">transactional email</text>
+  <text x="945" y="558" class="s">lib wired, no route yet</text>
+
+  <line x1="40" y1="620" x2="1240" y2="620" stroke="#ddd" stroke-width="1"/>
+
+  <!-- AUTH GATE -->
+  <text x="40" y="655" class="h">Auth gate — lib/auth.ts  ·  requireAuth</text>
+
+  <rect x="60"  y="688" width="130" height="48" rx="8" fill="#fff" stroke="#888" stroke-width="2"/>
+  <text x="125" y="717" class="t" text-anchor="middle">write request</text>
+  <line x1="190" y1="712" x2="228" y2="712" class="arr"/>
+
+  <rect x="230" y="688" width="155" height="48" rx="8" fill="#FFF3BF" stroke="#F59F00" stroke-width="2"/>
+  <text x="307" y="710" class="bt" text-anchor="middle">JWT secret</text>
+  <text x="307" y="727" class="t" text-anchor="middle">set?</text>
+  <line x1="385" y1="712" x2="423" y2="712" class="arr"/>
+  <text x="404" y="703" class="s">yes</text>
+
+  <rect x="425" y="688" width="140" height="48" rx="8" fill="#fff" stroke="#3ECF8E" stroke-width="2"/>
+  <text x="495" y="717" class="t" text-anchor="middle">verify HS256</text>
+  <line x1="565" y1="712" x2="603" y2="712" class="arr"/>
+
+  <rect x="605" y="688" width="185" height="48" rx="8" fill="#fff" stroke="#336791" stroke-width="2"/>
+  <text x="697" y="710" class="t" text-anchor="middle">find / create Player</text>
+  <text x="697" y="727" class="s" text-anchor="middle">keyed by token.sub</text>
+  <line x1="790" y1="712" x2="828" y2="712" class="arr"/>
+
+  <rect x="830" y="688" width="175" height="48" rx="8" fill="#D3F9D8" stroke="#2B8A3E" stroke-width="2"/>
+  <text x="917" y="717" class="bt" text-anchor="middle">req.auth.playerId</text>
+
+  <text x="1025" y="704" class="s">actingPlayerId(req):</text>
+  <text x="1025" y="720" class="s">authed id overrides body</text>
+  <text x="1025" y="736" class="s">(anti-spoof)</text>
+
+  <!-- dev branch -->
+  <line x1="307" y1="736" x2="307" y2="772" class="darr"/>
+  <rect x="200" y="774" width="215" height="40" rx="8" fill="#fff" stroke="#999" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="307" y="799" class="s" text-anchor="middle">unset (dev) → trust body playerId</text>
+
+  <!-- 401 branch -->
+  <line x1="495" y1="736" x2="495" y2="772" class="darr"/>
+  <rect x="430" y="774" width="160" height="40" rx="8" fill="#FFE3E3" stroke="#E03131" stroke-width="2"/>
+  <text x="510" y="799" class="t" text-anchor="middle" fill="#c92a2a">401 missing / invalid</text>
+
+  <line x1="40" y1="846" x2="1240" y2="846" stroke="#ddd" stroke-width="1"/>
+
+  <!-- RANKED FLOW -->
+  <text x="40" y="882" class="h">Ranked PvP — full match lifecycle</text>
+
+  <!-- step template: box 260..1020 -->
+  <!-- step 1 -->
+  <rect x="260" y="900" width="760" height="60" rx="8" fill="#fff" stroke="#12B886" stroke-width="2"/>
+  <circle cx="290" cy="930" r="14" fill="#12B886"/><text x="290" y="935" class="w" text-anchor="middle">1</text>
+  <text x="320" y="924" class="bt">Player A → POST /matchmaking/ranked/join {songId}</text>
+  <text x="320" y="946" class="s">Lua HSET A into queue:&lt;song&gt; · no MMR match → "queued"</text>
+  <rect x="930" y="912" width="78" height="22" rx="11" fill="#FDECEA" stroke="#D82C20"/><text x="969" y="928" class="s" text-anchor="middle" fill="#D82C20">Redis</text>
+  <line x1="640" y1="960" x2="640" y2="972" class="arr"/>
+
+  <!-- step 2 -->
+  <rect x="260" y="974" width="760" height="60" rx="8" fill="#fff" stroke="#12B886" stroke-width="2"/>
+  <circle cx="290" cy="1004" r="14" fill="#12B886"/><text x="290" y="1009" class="w" text-anchor="middle">2</text>
+  <text x="320" y="998" class="bt">Player B → POST /matchmaking/ranked/join {songId}</text>
+  <text x="320" y="1020" class="s">Lua pairs closest-MMR opponent in widening window · HDEL both</text>
+  <rect x="930" y="986" width="78" height="22" rx="11" fill="#FDECEA" stroke="#D82C20"/><text x="969" y="1002" class="s" text-anchor="middle" fill="#D82C20">Redis</text>
+  <line x1="640" y1="1034" x2="640" y2="1046" class="arr"/>
+
+  <!-- step 3 -->
+  <rect x="260" y="1048" width="760" height="60" rx="8" fill="#fff" stroke="#4C6EF5" stroke-width="2"/>
+  <circle cx="290" cy="1078" r="14" fill="#4C6EF5"/><text x="290" y="1083" class="w" text-anchor="middle">3</text>
+  <text x="320" y="1072" class="bt">create Match(pending, P1=A, P2=B) → returns {matchId}</text>
+  <text x="320" y="1094" class="s">set pending:&lt;A&gt; / pending:&lt;B&gt; · clear queue markers</text>
+  <rect x="900" y="1060" width="108" height="22" rx="11" fill="#EAF1F7" stroke="#336791"/><text x="954" y="1076" class="s" text-anchor="middle" fill="#336791">DB + Redis</text>
+  <line x1="640" y1="1108" x2="640" y2="1120" class="arr"/>
+
+  <!-- step 4 -->
+  <rect x="260" y="1122" width="760" height="50" rx="8" fill="#fff" stroke="#D82C20" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <circle cx="290" cy="1147" r="14" fill="#D82C20"/><text x="290" y="1152" class="w" text-anchor="middle">4</text>
+  <text x="320" y="1152" class="t">poll  GET /matchmaking/ranked/pending/:playerId  →  matchId</text>
+  <rect x="930" y="1136" width="78" height="22" rx="11" fill="#FDECEA" stroke="#D82C20"/><text x="969" y="1152" class="s" text-anchor="middle" fill="#D82C20">Redis</text>
+  <line x1="640" y1="1172" x2="640" y2="1184" class="arr"/>
+
+  <!-- step 5 -->
+  <rect x="260" y="1186" width="760" height="60" rx="8" fill="#fff" stroke="#12B886" stroke-width="2"/>
+  <circle cx="290" cy="1216" r="14" fill="#12B886"/><text x="290" y="1221" class="w" text-anchor="middle">5</text>
+  <text x="320" y="1210" class="bt">Player A → POST /performances {matchId, ranked_pvp}</text>
+  <text x="320" y="1232" class="s">server scores (client ignored) → Performance · finalize → "waiting for both"</text>
+  <rect x="900" y="1198" width="108" height="22" rx="11" fill="#EAF1F7" stroke="#336791"/><text x="954" y="1214" class="s" text-anchor="middle" fill="#336791">API + DB</text>
+  <line x1="640" y1="1246" x2="640" y2="1258" class="arr"/>
+
+  <!-- step 6 -->
+  <rect x="260" y="1260" width="760" height="52" rx="8" fill="#fff" stroke="#12B886" stroke-width="2"/>
+  <circle cx="290" cy="1286" r="14" fill="#12B886"/><text x="290" y="1291" class="w" text-anchor="middle">6</text>
+  <text x="320" y="1291" class="bt">Player B → POST /performances {matchId, ranked_pvp}  → Performance</text>
+  <rect x="930" y="1275" width="78" height="22" rx="11" fill="#EAF1F7" stroke="#336791"/><text x="969" y="1291" class="s" text-anchor="middle" fill="#336791">DB</text>
+  <line x1="640" y1="1312" x2="640" y2="1324" class="arr"/>
+
+  <!-- step 7 -->
+  <rect x="260" y="1326" width="760" height="74" rx="8" fill="#FFF9DB" stroke="#2B8A3E" stroke-width="2.5"/>
+  <circle cx="290" cy="1363" r="14" fill="#2B8A3E"/><text x="290" y="1368" class="w" text-anchor="middle">7</text>
+  <text x="320" y="1350" class="bt">finalize — tryFinalizeRankedMatch (one transaction)</text>
+  <text x="320" y="1370" class="s">claim match WHERE status=pending (race guard) → winner | draw</text>
+  <text x="320" y="1388" class="s">apply Elo + tier + matches W/L · match → completed · clear pending</text>
+  <rect x="908" y="1338" width="100" height="22" rx="11" fill="#D3F9D8" stroke="#2B8A3E"/><text x="958" y="1354" class="s" text-anchor="middle" fill="#2B8A3E">DB tx</text>
+
+  <!-- SOLO VS BOT -->
+  <rect x="150" y="1430" width="980" height="64" rx="10" fill="#FFF3BF" stroke="#F59F00" stroke-width="2"/>
+  <text x="170" y="1456" class="bt">Solo vs Bot — POST /bot/solo-vs-bot</text>
+  <text x="170" y="1478" class="t">one transaction: human + bot Performances + completed Match · human W/L updated · bot has no MMR · excluded from leaderboard</text>
+
+  <!-- LEGEND -->
+  <text x="40" y="1540" class="s">Legend:</text>
+  <rect x="100" y="1530" width="14" height="14" fill="#12B886"/><text x="120" y="1542" class="s">API</text>
+  <rect x="170" y="1530" width="14" height="14" fill="#D82C20"/><text x="190" y="1542" class="s">Redis</text>
+  <rect x="250" y="1530" width="14" height="14" fill="#4C6EF5"/><text x="270" y="1542" class="s">Postgres</text>
+  <rect x="345" y="1530" width="14" height="14" fill="#F59F00"/><text x="365" y="1542" class="s">Auth</text>
+  <rect x="415" y="1530" width="14" height="14" fill="#2B8A3E"/><text x="435" y="1542" class="s">Result / commit</text>
+</svg>
