@@ -1,0 +1,20 @@
+# Nixpacks (Railway, etc.) — build the API from this directory.
+# https://nixpacks.com/docs/configuration/file
+
+providers = ["node"]
+
+[variables]
+NIXPACKS_NODE_VERSION = "22"
+NODE_ENV = "production"
+
+# Install deps (uses package-lock.json)
+[phases.install]
+cmds = ["npm ci"]
+
+# Generate Prisma client + compile TypeScript
+[phases.build]
+dependsOn = ["install"]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
