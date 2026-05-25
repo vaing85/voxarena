@@ -1,8 +1,14 @@
-# VoxArena — Clients
+cdnpm# VoxArena API
 
-Game clients. Pick one to start.
+Node + Express + Prisma (PostgreSQL). Deploy on **Railway** with root directory **`services/api`** so **`nixpacks.toml`** is used.
 
-- **Unity** — Add a Unity project here (e.g. `clients/unity/`) when you begin the client.
-- **Godot** — Add a Godot project here (e.g. `clients/godot/`) when you begin the client.
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Dev server (`tsx watch`) |
+| `npm run build` | `tsc` (run `npm install` first so `prepare` runs `prisma generate`) |
+| `npm start` | Production: `node dist/index.js` |
+| `npm run db:push` | `prisma db push` |
+| `npm run db:seed` | Seed demo song, demo player, **VoxArena Bot** (solo vs bot) |
+| `npm run db:studio` | Prisma Studio |
 
-Client responsibilities: mic capture, WebRTC or chunked upload to backend, Socket.IO for room sync, display-only feedback (server is score authority). See [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+Env: copy `.env.example` → `.env`. See [../../docs/DEPLOYMENT.md](../../docs/DEPLOYMENT.md) and [../../docs/GETTING_STARTED.md](../../docs/GETTING_STARTED.md).
