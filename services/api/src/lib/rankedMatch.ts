@@ -4,6 +4,24 @@ import { applyElo1v1, applyEloDraw, tierFromMmr } from "./mmr.js";
 
 const PENDING_PREFIX = "voxarena:pending:";
 
+// A pending ranked match is abandoned if not completed within this window.
+const ABANDON_TIMEOUT_MS = 2 * 60 * 1000;
+// MMR a no-show loses on top of the normal Elo loss.
+const WALKOVER_PENALTY = 15;
+
+async function clearPendingMarkers(
+  player1Id: string,
+  player2Id: string
+): Promise<void> {
+  const redis = getRedis();
+  if (redis) {
+    await redis.del(
+      `${PENDING_PREFIX}${player1Id}`,
+      `${PENDING_PREFIX}${player2Id}`
+    );
+  }
+}
+
 export async function tryFinalizeRankedMatch(
   prisma: PrismaClient,
   matchId: string
@@ -118,13 +136,7 @@ export async function tryFinalizeRankedMatch(
     return { finalized: false, reason: "already_finalized" };
   }
 
-  const redis = getRedis();
-  if (redis) {
-    await redis.del(
-      `${PENDING_PREFIX}${match.player1Id}`,
-      `${PENDING_PREFIX}${match.player2Id}`
-    );
-  }
+  await clearPendingMarkers(match.player1Id, match.player2Id);
 
   return {
     finalized: true,
@@ -137,5 +149,143 @@ export async function tryFinalizeRankedMatch(
       newMmr1: outcome.newMmr1,
       newMmr2: outcome.newMmr2,
     },
+  };
+}
+
+/**
+ * Resolve a pending ranked match that has timed out without both performances.
+ *  - one player submitted → that player wins by walkover; the no-show takes a
+ *    normal Elo loss plus a fixed penalty
+ *  - neither submitted → the match is voided with no MMR change
+ * Lazy / on-demand: callers invoke this (e.g. the present player) once the
+ * timeout has elapsed. `now` is injectable for testing.
+ */
+export async function tryResolveAbandonedMatch(
+  prisma: PrismaClient,
+  matchId: string,
+  requesterId?: string,
+  now: number = Date.now()
+): Promise<
+  | { resolved: false; reason: string; retryInMs?: number }
+  | {
+      resolved: true;
+      outcome: "walkover";
+      winnerId: string;
+      loserId: string;
+      mmr: { winnerNew: number; loserNew: number };
+    }
+  | { resolved: true; outcome: "void"; winnerId: null }
+> {
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    include: { performances: { where: { mode: "ranked_pvp" } } },
+  });
+
+  if (!match) {
+    return { resolved: false, reason: "match_not_found" };
+  }
+  if (match.status !== "pending") {
+    return { resolved: false, reason: "already_finalized" };
+  }
+  if (
+    requesterId &&
+    requesterId !== match.player1Id &&
+    requesterId !== match.player2Id
+  ) {
+    return { resolved: false, reason: "not_participant" };
+  }
+
+  const age = now - match.createdAt.getTime();
+  if (age < ABANDON_TIMEOUT_MS) {
+    return { resolved: false, reason: "not_expired", retryInMs: ABANDON_TIMEOUT_MS - age };
+  }
+
+  const p1 = match.performances.find((p) => p.playerId === match.player1Id);
+  const p2 = match.performances.find((p) => p.playerId === match.player2Id);
+
+  // Both already submitted — this isn't abandoned; the normal finalize path
+  // (triggered on performance submission) handles it.
+  if (p1 && p2) {
+    return { resolved: false, reason: "both_submitted" };
+  }
+
+  // Neither showed up — void with no rating change.
+  if (!p1 && !p2) {
+    const claim = await prisma.match.updateMany({
+      where: { id: matchId, status: "pending" },
+      data: { status: "abandoned" },
+    });
+    if (claim.count === 0) {
+      return { resolved: false, reason: "already_finalized" };
+    }
+    await clearPendingMarkers(match.player1Id, match.player2Id);
+    return { resolved: true, outcome: "void", winnerId: null };
+  }
+
+  // Exactly one submitted — walkover win for the submitter.
+  const winnerId = p1 ? match.player1Id : match.player2Id;
+  const loserId = p1 ? match.player2Id : match.player1Id;
+  const winnerScore = (p1 ?? p2)?.scoreTotal ?? 0;
+
+  const outcome = await prisma.$transaction(async (tx) => {
+    const claim = await tx.match.updateMany({
+      where: { id: matchId, status: "pending" },
+      data: {
+        status: "walkover",
+        winnerId,
+        player1Score: p1 ? winnerScore : 0,
+        player2Score: p2 ? winnerScore : 0,
+      },
+    });
+    if (claim.count === 0) {
+      return null;
+    }
+
+    const [winner, loser] = await Promise.all([
+      tx.player.findUnique({ where: { id: winnerId } }),
+      tx.player.findUnique({ where: { id: loserId } }),
+    ]);
+    if (!winner || !loser) {
+      throw new Error("player_missing");
+    }
+
+    const { winnerNew, loserNew } = applyElo1v1(winner.mmr, loser.mmr);
+    const loserPenalized = Math.max(0, loserNew - WALKOVER_PENALTY);
+
+    await Promise.all([
+      tx.player.update({
+        where: { id: winnerId },
+        data: {
+          mmr: winnerNew,
+          tier: tierFromMmr(winnerNew),
+          matchesPlayed: { increment: 1 },
+          matchesWon: { increment: 1 },
+        },
+      }),
+      tx.player.update({
+        where: { id: loserId },
+        data: {
+          mmr: loserPenalized,
+          tier: tierFromMmr(loserPenalized),
+          matchesPlayed: { increment: 1 },
+        },
+      }),
+    ]);
+
+    return { winnerNew, loserNew: loserPenalized };
+  });
+
+  if (!outcome) {
+    return { resolved: false, reason: "already_finalized" };
+  }
+
+  await clearPendingMarkers(match.player1Id, match.player2Id);
+
+  return {
+    resolved: true,
+    outcome: "walkover",
+    winnerId,
+    loserId,
+    mmr: outcome,
   };
 }

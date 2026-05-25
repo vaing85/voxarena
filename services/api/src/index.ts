@@ -2,7 +2,7 @@
 import express, { type ErrorRequestHandler } from "express";
 import "express-async-errors";
 import { PrismaClient } from "@prisma/client";
-import { redisPing } from "./lib/redis.js";
+import { redisPing, disconnectRedis } from "./lib/redis.js";
 import { songsRouter } from "./routes/songs.js";
 import { playersRouter } from "./routes/players.js";
 import {
@@ -99,7 +99,7 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 app.use(errorHandler);
 
 async function main() {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`VoxArena API listening on http://localhost:${PORT}`);
     console.log(
       "  GET  /health /health/db /health/redis /health/supabase /health/resend"
@@ -112,6 +112,22 @@ async function main() {
     console.log("  GET  /matchmaking/ranked/pending/:playerId");
     console.log("  GET  /bot/presets  POST /bot/solo-vs-bot");
   });
+
+  let shuttingDown = false;
+  const shutdown = (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`${signal} received — closing server`);
+    server.close(() => {
+      void Promise.allSettled([prisma.$disconnect(), disconnectRedis()]).then(
+        () => process.exit(0)
+      );
+    });
+    // Don't let a hung connection keep the process alive forever.
+    setTimeout(() => process.exit(1), 10_000).unref();
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 main().catch((e) => {

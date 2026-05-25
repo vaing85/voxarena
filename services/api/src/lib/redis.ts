@@ -15,6 +15,15 @@ export function getRedis(): Redis | null {
   return client;
 }
 
+export async function disconnectRedis(): Promise<void> {
+  if (!client) return;
+  try {
+    await client.quit();
+  } finally {
+    client = null;
+  }
+}
+
 export async function redisPing(): Promise<{ ok: boolean; error?: string }> {
   const r = getRedis();
   if (!r) {
