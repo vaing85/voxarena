@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { isUuidString } from "../lib/ids.js";
 import { actingPlayerId } from "../lib/auth.js";
+import { tryResolveAbandonedMatch } from "../lib/rankedMatch.js";
 import {
   getMatchmakingRedis,
   rankedJoin,
@@ -120,6 +121,35 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
     }
     const matchId = await getPendingMatch(redis, playerId);
     res.json({ playerId, matchId });
+  });
+
+  // Resolve a pending ranked match that has timed out (opponent never
+  // submitted). Doesn't require Redis. Walkover to the submitter, or void if
+  // neither played.
+  r.post("/ranked/resolve/:matchId", async (req, res) => {
+    const { matchId } = req.params;
+    if (!isUuidString(matchId)) {
+      res.status(400).json({ error: "Invalid matchId" });
+      return;
+    }
+    const requesterId = actingPlayerId(req, req.body?.playerId);
+    const result = await tryResolveAbandonedMatch(
+      prisma,
+      matchId,
+      typeof requesterId === "string" ? requesterId : undefined
+    );
+
+    if (!result.resolved) {
+      const status =
+        result.reason === "match_not_found"
+          ? 404
+          : result.reason === "not_participant"
+            ? 403
+            : 409;
+      res.status(status).json(result);
+      return;
+    }
+    res.json(result);
   });
 
   return r;
