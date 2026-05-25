@@ -35,3 +35,17 @@ export function applyElo1v1(
   const loserNew = Math.round(loserMmr + k * (0 - el));
   return { winnerNew, loserNew };
 }
+
+/** 1v1 Elo update for a draw — both players score 0.5. */
+export function applyEloDraw(
+  mmr1: number,
+  mmr2: number,
+  k = 32
+): { new1: number; new2: number } {
+  const e1 = expectedScore(mmr1, mmr2);
+  const e2 = expectedScore(mmr2, mmr1);
+  return {
+    new1: Math.round(mmr1 + k * (0.5 - e1)),
+    new2: Math.round(mmr2 + k * (0.5 - e2)),
+  };
+}
