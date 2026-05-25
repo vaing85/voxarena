@@ -4,6 +4,7 @@ import { isUuidString } from "../lib/ids.js";
 import { HOUSE_BOT_DEVICE_ID } from "../config.js";
 import { generateBotScores, listBotPresets, type BotPreset } from "../lib/bots.js";
 import { computeStubScores } from "../lib/stubScore.js";
+import { actingPlayerId } from "../lib/auth.js";
 
 export function botDuelRouter(prisma: PrismaClient): Router {
   const r = Router();
@@ -16,7 +17,8 @@ export function botDuelRouter(prisma: PrismaClient): Router {
    * Solo vs bot: stores human + bot performances, completes Match, updates human stats (not bot MMR).
    */
   r.post("/solo-vs-bot", async (req, res) => {
-    const { playerId, songId, botPreset } = req.body ?? {};
+    const { songId, botPreset } = req.body ?? {};
+    const playerId = actingPlayerId(req, req.body?.playerId);
     if (
       typeof playerId !== "string" ||
       typeof songId !== "string" ||

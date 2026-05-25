@@ -12,6 +12,7 @@ import {
 import { getSupabaseAdmin } from "./lib/supabase.js";
 import { matchmakingRouter } from "./routes/matchmaking.js";
 import { botDuelRouter } from "./routes/botDuel.js";
+import { requireAuth } from "./lib/auth.js";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -83,10 +84,10 @@ app.get("/health/resend", (_req, res) => {
 
 app.use("/songs", songsRouter(prisma));
 app.use("/players", playersRouter(prisma));
-app.use("/performances", performancesRouter(prisma));
+app.use("/performances", requireAuth(prisma), performancesRouter(prisma));
 app.use("/leaderboard", leaderboardRouter(prisma));
-app.use("/matchmaking", matchmakingRouter(prisma));
-app.use("/bot", botDuelRouter(prisma));
+app.use("/matchmaking", requireAuth(prisma), matchmakingRouter(prisma));
+app.use("/bot", requireAuth(prisma), botDuelRouter(prisma));
 
 // Catch errors thrown in any (sync or async) route handler so a failure
 // returns 500 instead of crashing the process. Relies on express-async-errors

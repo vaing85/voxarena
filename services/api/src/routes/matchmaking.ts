@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { isUuidString } from "../lib/ids.js";
+import { actingPlayerId } from "../lib/auth.js";
 import {
   getMatchmakingRedis,
   rankedJoin,
@@ -21,7 +22,8 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
       return;
     }
 
-    const { playerId, songId } = req.body ?? {};
+    const { songId } = req.body ?? {};
+    const playerId = actingPlayerId(req, req.body?.playerId);
     if (typeof playerId !== "string" || typeof songId !== "string") {
       res.status(400).json({ error: "playerId and songId required" });
       return;
@@ -83,7 +85,7 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
       res.status(503).json({ error: "Matchmaking requires REDIS_URL" });
       return;
     }
-    const { playerId } = req.body ?? {};
+    const playerId = actingPlayerId(req, req.body?.playerId);
     if (typeof playerId !== "string" || !isUuidString(playerId)) {
       res.status(400).json({ error: "playerId (UUID) required" });
       return;
@@ -103,8 +105,8 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
       res.status(503).json({ error: "Matchmaking requires REDIS_URL" });
       return;
     }
-    const { playerId } = req.params;
-    if (!isUuidString(playerId)) {
+    const playerId = actingPlayerId(req, req.params.playerId);
+    if (typeof playerId !== "string" || !isUuidString(playerId)) {
       res.status(400).json({ error: "Invalid playerId" });
       return;
     }
