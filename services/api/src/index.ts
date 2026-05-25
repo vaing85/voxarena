@@ -1,5 +1,6 @@
 /** VoxArena API */
-import express from "express";
+import express, { type ErrorRequestHandler } from "express";
+import "express-async-errors";
 import { PrismaClient } from "@prisma/client";
 import { redisPing } from "./lib/redis.js";
 import { songsRouter } from "./routes/songs.js";
@@ -86,6 +87,15 @@ app.use("/performances", performancesRouter(prisma));
 app.use("/leaderboard", leaderboardRouter(prisma));
 app.use("/matchmaking", matchmakingRouter(prisma));
 app.use("/bot", botDuelRouter(prisma));
+
+// Catch errors thrown in any (sync or async) route handler so a failure
+// returns 500 instead of crashing the process. Relies on express-async-errors
+// to forward rejected promises here.
+const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ ok: false, error: "Internal server error" });
+};
+app.use(errorHandler);
 
 async function main() {
   app.listen(PORT, () => {
