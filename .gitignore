@@ -1,36 +1,61 @@
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# VoxArena — gitignore
 
-# next.js
-/.next/
-/out/
-next-env.d.ts
-
-# production
-/build
-
-# misc
-.DS_Store
+# Env and secrets
+.env
+.env.local
+.env.*.local
 *.pem
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
 
-# env files
-.env
-.env*.local
-
-# typescript
+# Build
+dist/
+build/
 *.tsbuildinfo
 
-# editor
-.vscode/
-.idea/
+# Prisma — keep migrations/ tracked for Postgres; do not ignore.
 
-# supabase local
-/supabase/.branches
-/supabase/.temp
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Unity
+clients/unity/[Ll]ibrary/
+clients/unity/[Tt]emp/
+clients/unity/[Oo]bj/
+clients/unity/[Bb]uild/
+clients/unity/[Bb]uilds/
+clients/unity/[Ll]ogs/
+clients/unity/[Uu]ser[Ss]ettings/
+*.csproj.user
+
+# Godot
+clients/godot/.import/
+clients/godot/export/
+clients/godot/*.translation
+
+# Misc
+*.local
+.cache/
