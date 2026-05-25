@@ -42,6 +42,14 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
       return;
     }
 
+    // Drop any stale queue entry for a different song first: the per-player
+    // marker only tracks one song, so re-queueing elsewhere would otherwise
+    // orphan the old entry in that song's queue hash.
+    const existingSong = await getPlayerQueuedSong(redis, playerId);
+    if (existingSong && existingSong !== songId) {
+      await rankedLeave(redis, existingSong, playerId);
+    }
+
     const result = await rankedJoin(redis, songId, playerId, {
       mmr: player.mmr,
       ts: Date.now(),
