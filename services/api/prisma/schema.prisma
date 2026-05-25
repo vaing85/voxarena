@@ -1,0 +1,95 @@
+// VoxArena — PostgreSQL (Supabase). Run: npx prisma db push
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  supabaseUserId String? @unique @db.Uuid
+
+  email    String? @unique
+  name     String?
+  deviceId String?
+
+  mmr  Int    @default(1000)
+  tier String @default("Bronze") // Bronze | Silver | Gold | Platinum | Diamond | Master
+
+  matchesPlayed Int @default(0)
+  matchesWon    Int @default(0)
+
+  performances Performance[]
+  matchesAs1   Match[]       @relation("Player1Matches")
+  matchesAs2   Match[]       @relation("Player2Matches")
+}
+
+model Song {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  title       String
+  artist      String?
+  difficulty  String
+  referenceId String?
+
+  performances Performance[]
+  matches      Match[]
+}
+
+model Performance {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  playerId String
+  songId   String
+  mode     String // solo_practice | solo_vs_bot | ranked_pvp | tournament
+
+  scorePitch       Float?
+  scoreTiming      Float?
+  scoreStability   Float?
+  scoreDynamics    Float?
+  scoreTransitions Float?
+  scoreTotal       Float?
+
+  matchId String?
+  match   Match?  @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  song   Song   @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([songId])
+  @@index([playerId])
+  @@index([matchId])
+}
+
+model Match {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  songId     String
+  difficulty String
+
+  player1Id String
+  player2Id String
+  winnerId  String?
+
+  player1Score Float?
+  player2Score Float?
+
+  /// pending: waiting for performances — completed: MMR applied
+  status String @default("pending")
+
+  player1 Player @relation("Player1Matches", fields: [player1Id], references: [id], onDelete: Cascade)
+  player2 Player @relation("Player2Matches", fields: [player2Id], references: [id], onDelete: Cascade)
+  song    Song   @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  performances Performance[]
+}
