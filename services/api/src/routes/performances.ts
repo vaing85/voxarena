@@ -82,6 +82,10 @@ export function performancesRouter(prisma: PrismaClient): Router {
       }
     }
 
+    // Ranked matches are server-authoritative: client-supplied scores are
+    // ignored so MMR can't be rigged by POSTing a perfect scoreTotal. Other
+    // modes (practice, solo_vs_bot) may pass client scores.
+    const serverScored = mode === "ranked_pvp";
     const hasAnyScore =
       req.body.scoreTotal != null ||
       req.body.scorePitch != null ||
@@ -96,7 +100,7 @@ export function performancesRouter(prisma: PrismaClient): Router {
       scoreTotal: number;
     };
 
-    if (!hasAnyScore) {
+    if (serverScored || !hasAnyScore) {
       scores = computeStubScores(`${playerId}:${songId}:${Date.now()}`);
     } else {
       const n = (v: unknown): number | undefined =>
