@@ -1,9 +1,9 @@
 import { Router } from "express";
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 import { isUuidString } from "../lib/ids.js";
 import { computeStubScores } from "../lib/stubScore.js";
 import { tryFinalizeRankedMatch } from "../lib/rankedMatch.js";
-import { HOUSE_BOT_DEVICE_ID } from "../config.js";
+import { actingPlayerId } from "../lib/auth.js";
 
 const MODES = new Set([
   "solo_practice",
@@ -16,7 +16,8 @@ export function performancesRouter(prisma: PrismaClient): Router {
   const r = Router();
 
   r.post("/", async (req, res) => {
-    const { playerId, songId, mode, matchId } = req.body ?? {};
+    const { songId, mode, matchId } = req.body ?? {};
+    const playerId = actingPlayerId(req, req.body?.playerId);
     if (
       typeof playerId !== "string" ||
       typeof songId !== "string" ||
@@ -190,17 +191,10 @@ export function leaderboardRouter(prisma: PrismaClient): Router {
       return;
     }
 
-    const houseBot = await prisma.player.findFirst({
-      where: { deviceId: HOUSE_BOT_DEVICE_ID },
-      select: { id: true },
-    });
-    const where: Prisma.PerformanceWhereInput = { songId };
-    if (houseBot) {
-      where.playerId = { not: houseBot.id };
-    }
-
+    // Leaderboard is competitive-only: just ranked_pvp results. This also
+    // excludes the house bot, which never plays ranked.
     const rows = await prisma.performance.findMany({
-      where,
+      where: { songId, mode: "ranked_pvp" },
       orderBy: { scoreTotal: "desc" },
       take: limit,
       include: {
