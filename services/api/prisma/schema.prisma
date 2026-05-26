@@ -41,6 +41,10 @@ model Song {
   difficulty  String
   referenceId String?
 
+  /// Reference melody for pitch scoring: array of { start, end, midi } notes
+  /// (seconds + MIDI note). Null until authored.
+  referenceNotes Json?
+
   /// When set, the song is locked behind the pack; null = free for everyone.
   packId String?
   pack   SongPack? @relation(fields: [packId], references: [id], onDelete: SetNull)

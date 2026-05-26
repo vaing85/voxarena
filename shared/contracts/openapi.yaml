@@ -164,6 +164,54 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { description: Performance already recorded for this match }
 
+  /performances/audio:
+    post:
+      tags: [Performances]
+      summary: Submit a performance scored from uploaded audio (real pitch)
+      description: >
+        Multipart upload. The server sends the audio + the song's reference
+        melody to the pitch service for a real Layer A (pitch) score, fills the
+        other layers heuristically, and stores the performance. Requires
+        PITCH_SERVICE_URL and a song with reference notes.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio, playerId, songId, mode]
+              properties:
+                audio: { type: string, format: binary, description: WAV recording }
+                playerId: { type: string, format: uuid }
+                songId: { type: string, format: uuid }
+                mode: { type: string, enum: [solo_practice, solo_vs_bot, ranked_pvp, tournament] }
+                matchId: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Stored performance with the pitch breakdown
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  performance: { $ref: "#/components/schemas/Performance" }
+                  ranked: { nullable: true, type: object }
+                  pitch:
+                    type: object
+                    properties:
+                      scorePitch: { type: number }
+                      meanCentsError: { type: number, nullable: true }
+                      voicedRatio: { type: number }
+                      evaluatedFrames: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Performance already recorded for this match }
+        "422": { description: No reference pitch, or pitch could not be scored }
+        "502": { description: Pitch service error }
+        "503": { description: Pitch scoring unavailable (PITCH_SERVICE_URL not set) }
+
   /leaderboard:
     get:
       tags: [Performances]

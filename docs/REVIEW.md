@@ -40,7 +40,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 
 | Area | Notes |
 |------|--------|
-| **Pitch ML integration** | Standalone PYIN pitch service exists (`services/pitch`, real Layer A scoring + tests). Still TODO: per-song reference pitch, client audio capture, and Node calling it to replace the stub pitch layer. |
+| **Pitch ML integration** | Wired: `POST /performances/audio` uploads WAV → Node calls the PYIN service → real Layer A pitch score stored (`Song.referenceNotes` holds the reference melody). Still TODO: live **mic capture** in a client (web client has WAV file-upload only), and real Layers B–E (timing/stability/dynamics/transitions stay heuristic). |
 | **Socket.IO / WebRTC** | Live session sync, mic streaming ([MVP](MVP.md) Phase 3). |
 | **Anti-cheat** | Fingerprinting, review queue. |
 | **Event emitter** | Event schemas defined in `shared/events`; emitting them to a queue is still TODO. |
