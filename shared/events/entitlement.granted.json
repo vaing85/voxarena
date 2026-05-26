@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://voxarena.dev/events/entitlement.granted.json",
+  "title": "entitlement.granted",
+  "description": "Emitted when a player gains a pack (purchase or manual grant).",
+  "type": "object",
+  "required": ["event", "version", "occurredAt", "playerId", "packId", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "event": { "const": "entitlement.granted" },
+    "version": { "type": "integer", "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "playerId": { "type": "string", "format": "uuid" },
+    "packId": { "type": "string", "format": "uuid" },
+    "source": { "type": "string", "enum": ["purchase", "grant"] },
+    "stripeSessionId": { "type": ["string", "null"] }
+  }
+}

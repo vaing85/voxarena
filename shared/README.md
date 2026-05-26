@@ -2,7 +2,7 @@
 
 Shared contracts and schemas used by services and clients.
 
-- **events** — Event schemas (e.g. `performance_start`, `note_result`, `performance_summary`) for analytics and anti-cheat.
-- **contracts** — API contracts (OpenAPI / type definitions) for REST and Socket.IO.
+- **contracts** — `openapi.yaml`: the OpenAPI 3 source of truth for the REST API.
+- **events** — JSON-Schema event payloads (`performance.recorded`, `match.completed`, `entitlement.granted`) for analytics and anti-cheat.
 
-Add schemas here as you define them (Phase 1+).
+Both are validated by `services/api/src/contracts.test.ts`. See each subfolder's README.

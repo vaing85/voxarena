@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://voxarena.dev/events/performance.recorded.json",
+  "title": "performance.recorded",
+  "description": "Emitted when a performance is stored. Feeds analytics and anti-cheat.",
+  "type": "object",
+  "required": ["event", "version", "occurredAt", "performanceId", "playerId", "songId", "mode", "scoreTotal"],
+  "additionalProperties": false,
+  "properties": {
+    "event": { "const": "performance.recorded" },
+    "version": { "type": "integer", "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "performanceId": { "type": "string", "format": "uuid" },
+    "playerId": { "type": "string", "format": "uuid" },
+    "songId": { "type": "string", "format": "uuid" },
+    "matchId": { "type": ["string", "null"], "format": "uuid" },
+    "mode": { "type": "string", "enum": ["solo_practice", "solo_vs_bot", "ranked_pvp", "tournament"] },
+    "scorePitch": { "type": ["number", "null"] },
+    "scoreTiming": { "type": ["number", "null"] },
+    "scoreStability": { "type": ["number", "null"] },
+    "scoreDynamics": { "type": ["number", "null"] },
+    "scoreTransitions": { "type": ["number", "null"] },
+    "scoreTotal": { "type": ["number", "null"] }
+  }
+}

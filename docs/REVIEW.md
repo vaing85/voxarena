@@ -27,6 +27,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 | **Auth** | Supabase token verification + `supabaseUserId` linking; write endpoints gated by `requireAuth`; `AUTH_DEV_BYPASS` for local dev. Reads stay public. |
 | **Monetization** | Song packs: `SongPack`/`Entitlement` models, `GET /store/packs`, `POST /store/checkout` (Stripe), signature-verified `POST /store/webhook` granting entitlements; locked songs gated on play. |
 | **Web dev client** | `clients/web` static page served by the API; full loop + store. |
+| **Shared contracts** | OpenAPI 3 spec (`shared/contracts/openapi.yaml`) + JSON-Schema events (`shared/events/`); validated by `contracts.test.ts`. |
 | **Health** | `/health` reports `phase: 2`. |
 
 **Ranked flow:** join queue (same `songId`) → on pair, **`matchId`** returned → both players `POST /performances` with `mode: "ranked_pvp"`, same `songId`, and **`matchId`** → when both scores are in, **ELO** runs and **`Match`** is **`completed`**.
@@ -42,8 +43,8 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 | **Real pitch ML** | Python + CREPE/PYIN (or similar); replace stub / heuristic layers. |
 | **Socket.IO / WebRTC** | Live session sync, mic streaming ([MVP](MVP.md) Phase 3). |
 | **Anti-cheat** | Fingerprinting, review queue. |
-| **Shared contracts** | OpenAPI / event schemas in `shared/`. |
-| **Game client** | Unity / Godot / web harness. |
+| **Event emitter** | Event schemas defined in `shared/events`; emitting them to a queue is still TODO. |
+| **Game client** | Unity / Godot (web dev harness exists in `clients/web`). |
 
 ---
 

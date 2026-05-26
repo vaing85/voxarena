@@ -1,12 +1,18 @@
 # Event schemas
 
-Event payloads used by analytics and anti-cheat (and optionally by services).
+Domain event payloads (JSON Schema, draft 2020-12) for the analytics and
+anti-cheat pipeline. Each event shares an envelope: `event` (the name), an
+integer `version`, and an ISO `occurredAt` timestamp.
 
-Add schemas here as you define them, e.g.:
+| File | Emitted when |
+|------|--------------|
+| `performance.recorded.json` | A performance is stored (`POST /performances`, solo-vs-bot). |
+| `match.completed.json` | A match is finalized and MMR applied. |
+| `entitlement.granted.json` | A player gains a pack (purchase or grant). |
 
-- `performance_start` / `performance_end`
-- `note_result`
-- `phrase_result`
-- `performance_summary`
+These define the **contract**; wiring an emitter (e.g. to Redis/queue) is a
+follow-up. `services/api/src/contracts.test.ts` validates each schema's
+envelope and that its `event` const matches the filename.
 
-Formats: JSON Schema, TypeScript types, or Avro — keep one source of truth and generate the rest if needed.
+Future events (per [ARCHITECTURE](../../docs/ARCHITECTURE.md)): `note_result`,
+`phrase_result`, finer-grained signals for anti-cheat.
