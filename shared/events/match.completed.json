@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://voxarena.dev/events/match.completed.json",
+  "title": "match.completed",
+  "description": "Emitted when a match is finalized (both scores in) and MMR is applied.",
+  "type": "object",
+  "required": ["event", "version", "occurredAt", "matchId", "songId", "player1Id", "player2Id", "winnerId"],
+  "additionalProperties": false,
+  "properties": {
+    "event": { "const": "match.completed" },
+    "version": { "type": "integer", "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "matchId": { "type": "string", "format": "uuid" },
+    "songId": { "type": "string", "format": "uuid" },
+    "mode": { "type": "string", "enum": ["solo_vs_bot", "ranked_pvp", "tournament"] },
+    "player1Id": { "type": "string", "format": "uuid" },
+    "player2Id": { "type": "string", "format": "uuid" },
+    "winnerId": { "type": "string", "format": "uuid" },
+    "player1Score": { "type": ["number", "null"] },
+    "player2Score": { "type": ["number", "null"] },
+    "mmr": {
+      "type": ["object", "null"],
+      "description": "New MMR per player after ELO (absent for solo_vs_bot).",
+      "additionalProperties": false,
+      "properties": {
+        "player1Id": { "type": "string", "format": "uuid" },
+        "player2Id": { "type": "string", "format": "uuid" },
+        "newMmr1": { "type": "integer" },
+        "newMmr2": { "type": "integer" }
+      }
+    }
+  }
+}

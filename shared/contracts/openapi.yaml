@@ -1,0 +1,497 @@
+openapi: 3.0.3
+info:
+  title: VoxArena API
+  version: "0.1.0"
+  description: >
+    Server-authoritative API for VoxArena (competitive singing game).
+    Reads are public; write endpoints require authentication. Identity comes
+    from a Supabase access token (`Authorization: Bearer <token>`) in
+    production, or — only when `AUTH_DEV_BYPASS=true` and not in production —
+    from an `x-player-id` header for local development.
+servers:
+  - url: http://localhost:3000
+    description: Local dev
+
+tags:
+  - name: Health
+  - name: Songs
+  - name: Players
+  - name: Performances
+  - name: Matchmaking
+  - name: Bot
+  - name: Store
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      security: []
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  service: { type: string }
+                  phase: { type: integer }
+                  timestamp: { type: string, format: date-time }
+
+  /health/db:
+    get:
+      tags: [Health]
+      summary: Database reachability
+      security: []
+      responses:
+        "200": { description: Postgres reachable }
+        "503": { description: Postgres unreachable }
+
+  /health/redis:
+    get:
+      tags: [Health]
+      summary: Redis reachability (skipped when REDIS_URL unset)
+      security: []
+      responses:
+        "200": { description: Connected or skipped }
+        "503": { description: Configured but unavailable }
+
+  /health/supabase:
+    get:
+      tags: [Health]
+      summary: Supabase configuration status
+      security: []
+      responses:
+        "200": { description: configured or skipped }
+
+  /health/resend:
+    get:
+      tags: [Health]
+      summary: Resend (email) configuration status
+      security: []
+      responses:
+        "200": { description: configured or skipped }
+
+  /songs:
+    get:
+      tags: [Songs]
+      summary: List songs
+      security: []
+      responses:
+        "200":
+          description: All songs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  songs:
+                    type: array
+                    items: { $ref: "#/components/schemas/Song" }
+
+  /songs/{id}:
+    get:
+      tags: [Songs]
+      summary: Get one song
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The song
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Song" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /players:
+    post:
+      tags: [Players]
+      summary: Register / link the current player
+      description: >
+        With Supabase configured, finds-or-creates the Player linked to the
+        authenticated user. In dev bypass, creates an unlinked player whose id
+        is then used as the x-player-id header.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 64 }
+      responses:
+        "201":
+          description: The player
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Player" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/AuthNotConfigured" }
+
+  /performances:
+    post:
+      tags: [Performances]
+      summary: Submit a performance (server computes/stores the score)
+      description: >
+        Send all five layer scores plus scoreTotal, or omit every score field
+        to use server stub scoring. `matchId` is only valid with mode
+        `ranked_pvp`; when both players' performances are in, ELO is applied.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PerformanceCreate" }
+      responses:
+        "201":
+          description: Created performance (+ ranked result when finalized)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  performance: { $ref: "#/components/schemas/Performance" }
+                  ranked:
+                    nullable: true
+                    type: object
+                    description: Ranked finalization result, or null
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Performance already recorded for this match }
+
+  /leaderboard:
+    get:
+      tags: [Performances]
+      summary: Leaderboard for a song (house bot excluded)
+      security: []
+      parameters:
+        - { name: songId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 10 } }
+      responses:
+        "200":
+          description: Ranked entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  songId: { type: string, format: uuid }
+                  song:
+                    type: object
+                    properties:
+                      title: { type: string }
+                      difficulty: { type: string }
+                  leaderboard:
+                    type: array
+                    items: { $ref: "#/components/schemas/LeaderboardEntry" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /matchmaking/ranked/join:
+    post:
+      tags: [Matchmaking]
+      summary: Join the ranked queue for a song (requires Redis)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [playerId, songId]
+              properties:
+                playerId: { type: string, format: uuid }
+                songId: { type: string, format: uuid }
+      responses:
+        "200": { description: Queued (waiting for an opponent) }
+        "201": { description: Matched — returns matchId and both player ids }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { description: Matchmaking requires REDIS_URL }
+
+  /matchmaking/ranked/leave:
+    post:
+      tags: [Matchmaking]
+      summary: Leave the ranked queue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [playerId]
+              properties:
+                playerId: { type: string, format: uuid }
+      responses:
+        "200": { description: "{ left: boolean }" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { description: Matchmaking requires REDIS_URL }
+
+  /matchmaking/ranked/pending/{playerId}:
+    get:
+      tags: [Matchmaking]
+      summary: Current pending matchId for a player
+      parameters:
+        - { name: playerId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: "{ playerId, matchId | null }" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { description: Matchmaking requires REDIS_URL }
+
+  /bot/presets:
+    get:
+      tags: [Bot]
+      summary: List bot personalities
+      security: []
+      responses:
+        "200":
+          description: Preset keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  presets:
+                    type: array
+                    items: { type: string, enum: [rookie, pro, metro, soul] }
+
+  /bot/solo-vs-bot:
+    post:
+      tags: [Bot]
+      summary: Play a solo match against the house bot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [playerId, songId, botPreset]
+              properties:
+                playerId: { type: string, format: uuid }
+                songId: { type: string, format: uuid }
+                botPreset: { type: string, enum: [rookie, pro, metro, soul] }
+                scorePitch: { type: number }
+                scoreTiming: { type: number }
+                scoreStability: { type: number }
+                scoreDynamics: { type: number }
+                scoreTransitions: { type: number }
+                scoreTotal: { type: number }
+      responses:
+        "201":
+          description: Result with both performances and the winner
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matchId: { type: string, format: uuid }
+                  botPreset: { type: string }
+                  scores:
+                    type: object
+                    properties:
+                      human: { type: number }
+                      bot: { type: number }
+                  winnerId: { type: string, format: uuid }
+                  youWon: { type: boolean }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /store/packs:
+    get:
+      tags: [Store]
+      summary: List purchasable song packs
+      description: Public; includes `owned` per pack when authenticated.
+      security:
+        - {}
+        - bearerAuth: []
+        - devPlayerId: []
+      responses:
+        "200":
+          description: Active packs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  packs:
+                    type: array
+                    items: { $ref: "#/components/schemas/Pack" }
+
+  /store/checkout:
+    post:
+      tags: [Store]
+      summary: Start a Stripe Checkout session for a pack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [packId]
+              properties:
+                packId: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Checkout session URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+                  sessionId: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Not purchasable yet, or already owned }
+        "503": { description: Payments not configured (STRIPE_SECRET_KEY) }
+
+  /store/webhook:
+    post:
+      tags: [Store]
+      summary: Stripe webhook (raw body, signature-verified)
+      security: []
+      description: >
+        Consumes Stripe events. On `checkout.session.completed` it grants the
+        entitlement idempotently. Requires STRIPE_WEBHOOK_SECRET.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: "{ received: true }" }
+        "400": { description: Invalid signature }
+        "503": { description: Webhook not configured }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Supabase access token
+    devPlayerId:
+      type: apiKey
+      in: header
+      name: x-player-id
+      description: Dev-bypass identity (local only, never in production)
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing or invalid identity
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Identity mismatch or locked content
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    AuthNotConfigured:
+      description: Auth not configured (no Supabase and no dev bypass)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+    Player:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        mmr: { type: integer }
+        tier: { type: string, enum: [Bronze, Silver, Gold, Platinum, Diamond, Master] }
+        createdAt: { type: string, format: date-time }
+
+    Song:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        artist: { type: string, nullable: true }
+        difficulty: { type: string }
+        referenceId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    PerformanceCreate:
+      type: object
+      required: [playerId, songId, mode]
+      properties:
+        playerId: { type: string, format: uuid }
+        songId: { type: string, format: uuid }
+        mode: { type: string, enum: [solo_practice, solo_vs_bot, ranked_pvp, tournament] }
+        matchId: { type: string, format: uuid, description: Only valid with mode ranked_pvp }
+        scorePitch: { type: number }
+        scoreTiming: { type: number }
+        scoreStability: { type: number }
+        scoreDynamics: { type: number }
+        scoreTransitions: { type: number }
+        scoreTotal: { type: number }
+
+    Performance:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        playerId: { type: string, format: uuid }
+        songId: { type: string, format: uuid }
+        mode: { type: string }
+        matchId: { type: string, format: uuid, nullable: true }
+        scorePitch: { type: number, nullable: true }
+        scoreTiming: { type: number, nullable: true }
+        scoreStability: { type: number, nullable: true }
+        scoreDynamics: { type: number, nullable: true }
+        scoreTransitions: { type: number, nullable: true }
+        scoreTotal: { type: number, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    LeaderboardEntry:
+      allOf:
+        - { $ref: "#/components/schemas/Performance" }
+        - type: object
+          properties:
+            rank: { type: integer }
+
+    Pack:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        priceCents: { type: integer }
+        currency: { type: string }
+        songCount: { type: integer }
+        purchasable: { type: boolean }
+        owned: { type: boolean }
+
+security:
+  - bearerAuth: []
+  - devPlayerId: []
