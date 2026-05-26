@@ -290,7 +290,8 @@ export function performancesRouter(prisma: PrismaClient): Router {
         return;
       }
 
-      // Real pitch (A) + timing (B) + stability (C) + dynamics (D); E stays heuristic.
+      // All five layers are scored from audio; a stub fills any layer the
+      // service couldn't evaluate (e.g. no pitch changes -> null transitions).
       const others = computeStubScores(`${playerId}:${songId}:${Date.now()}`);
       const layers = {
         scorePitch: Math.round(analysis.scorePitch),
@@ -306,7 +307,10 @@ export function performancesRouter(prisma: PrismaClient): Router {
           analysis.scoreDynamics != null
             ? Math.round(analysis.scoreDynamics)
             : others.scoreDynamics,
-        scoreTransitions: others.scoreTransitions,
+        scoreTransitions:
+          analysis.scoreTransitions != null
+            ? Math.round(analysis.scoreTransitions)
+            : others.scoreTransitions,
       };
       const scoreTotal = weightedTotal(layers);
 
@@ -353,6 +357,11 @@ export function performancesRouter(prisma: PrismaClient): Router {
         dynamics: {
           scoreDynamics: analysis.scoreDynamics,
           meanCv: analysis.meanCv,
+        },
+        transitions: {
+          scoreTransitions: analysis.scoreTransitions,
+          meanSettleRatio: analysis.meanSettleRatio,
+          evaluatedTransitions: analysis.evaluatedTransitions,
         },
       });
     }

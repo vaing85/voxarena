@@ -48,6 +48,12 @@ class DynamicsResult(TypedDict):
     meanCv: Optional[float]           # frame-weighted mean RMS coefficient of variation
 
 
+class TransitionsResult(TypedDict):
+    scoreTransitions: Optional[float]  # 0–100, or None if there are no pitch changes
+    evaluatedTransitions: int
+    meanSettleRatio: Optional[float]   # mean fraction of post-onset frames on the new target
+
+
 def midi_to_hz(midi: float) -> float:
     return 440.0 * (2.0 ** ((midi - 69.0) / 12.0))
 
@@ -260,4 +266,61 @@ def score_dynamics(
         scoreDynamics=score,
         evaluatedNotes=len(note_cvs),
         meanCv=round(mean_cv, 3),
+    )
+
+
+def score_transitions(
+    f0_hz: np.ndarray,
+    times: np.ndarray,
+    reference: Sequence[ReferenceNote],
+    tolerance_cents: float = 100.0,
+    window_sec: float = 0.15,
+    min_frames: int = 2,
+) -> TransitionsResult:
+    """Score how cleanly the singer moves between notes.
+
+    For each consecutive pair where the pitch changes, look at a short window
+    at the start of the new note and measure the fraction of frames already
+    within tolerance of the new target. A snappy, clean change settles fast;
+    a slow portamento or messy slide lingers off-target.
+    """
+    notes: list[tuple[float, float, float]] = []
+    for note in reference:
+        try:
+            notes.append((float(note["start"]), float(note["end"]), float(note["midi"])))
+        except (KeyError, TypeError, ValueError):
+            continue
+    notes.sort()
+
+    f0 = np.asarray(f0_hz, dtype=float)
+    voiced = ~np.isnan(f0)
+    vf = f0[voiced]
+    vt = np.asarray(times, dtype=float)[voiced]
+
+    ratios: list[float] = []
+    weights: list[int] = []
+    for i in range(1, len(notes)):
+        prev_midi = notes[i - 1][2]
+        start, end, midi = notes[i]
+        if midi == prev_midi:
+            continue
+        win_end = min(start + window_sec, end)
+        sel = vf[(vt >= start) & (vt < win_end) & (vf > 0)]
+        if sel.size < min_frames:
+            continue
+        target = midi_to_hz(midi)
+        cents = np.abs(1200.0 * np.log2(sel / target))
+        ratios.append(float(np.mean(cents <= tolerance_cents)))
+        weights.append(int(sel.size))
+
+    if not ratios:
+        return TransitionsResult(
+            scoreTransitions=None, evaluatedTransitions=0, meanSettleRatio=None
+        )
+
+    mean_ratio = float(np.average(ratios, weights=weights))
+    return TransitionsResult(
+        scoreTransitions=round(100.0 * mean_ratio, 1),
+        evaluatedTransitions=len(ratios),
+        meanSettleRatio=round(mean_ratio, 3),
     )

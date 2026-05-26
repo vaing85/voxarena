@@ -221,6 +221,12 @@ paths:
                     properties:
                       scoreDynamics: { type: number, nullable: true }
                       meanCv: { type: number, nullable: true }
+                  transitions:
+                    type: object
+                    properties:
+                      scoreTransitions: { type: number, nullable: true }
+                      meanSettleRatio: { type: number, nullable: true }
+                      evaluatedTransitions: { type: integer }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
