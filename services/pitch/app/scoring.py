@@ -36,6 +36,12 @@ class TimingResult(TypedDict):
     meanOnsetErrorMs: Optional[float]
 
 
+class StabilityResult(TypedDict):
+    scoreStability: Optional[float]   # 0–100, or None if no note had enough voiced frames
+    evaluatedNotes: int
+    meanStdCents: Optional[float]     # frame-weighted mean pitch spread within notes
+
+
 def midi_to_hz(midi: float) -> float:
     return 440.0 * (2.0 ** ((midi - 69.0) / 12.0))
 
@@ -155,4 +161,49 @@ def score_timing(
         matchedOnsets=matched,
         referenceOnsets=len(ref_onsets),
         meanOnsetErrorMs=mean_err,
+    )
+
+
+def score_stability(
+    f0_hz: np.ndarray,
+    times: np.ndarray,
+    reference: Sequence[ReferenceNote],
+    min_frames: int = 3,
+    max_std_cents: float = 100.0,
+) -> StabilityResult:
+    """Score how steadily each note is held (low pitch wobble = high score).
+
+    Measures the cents spread of the detected pitch around each note's own
+    median — so it rewards a steady tone regardless of whether it's the right
+    note (that's Layer A). Notes are weighted by their voiced-frame count.
+    """
+    f0 = np.asarray(f0_hz, dtype=float)
+    voiced = ~np.isnan(f0)
+    vf = f0[voiced]
+    vt = np.asarray(times, dtype=float)[voiced]
+
+    note_stds: list[float] = []
+    weights: list[int] = []
+    for note in reference:
+        try:
+            start = float(note["start"])
+            end = float(note["end"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        sel = vf[(vt >= start) & (vt < end) & (vf > 0)]
+        if sel.size < min_frames:
+            continue
+        cents = 1200.0 * np.log2(sel / np.median(sel))
+        note_stds.append(float(np.std(cents)))
+        weights.append(int(sel.size))
+
+    if not note_stds:
+        return StabilityResult(scoreStability=None, evaluatedNotes=0, meanStdCents=None)
+
+    mean_std = float(np.average(note_stds, weights=weights))
+    score = round(max(0.0, min(100.0, 100.0 * (1.0 - mean_std / max_std_cents))), 1)
+    return StabilityResult(
+        scoreStability=score,
+        evaluatedNotes=len(note_stds),
+        meanStdCents=round(mean_std, 1),
     )

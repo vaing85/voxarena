@@ -41,7 +41,10 @@ Response:
   "scoreTiming": 100.0,      // 0–100, or null if no reference onsets
   "matchedOnsets": 4,
   "referenceOnsets": 4,
-  "meanOnsetErrorMs": 35.1   // mean onset error vs reference, or null
+  "meanOnsetErrorMs": 35.1,  // mean onset error vs reference, or null
+  "scoreStability": 72.3,    // 0–100, or null if no note had enough frames
+  "evaluatedNotes": 4,
+  "meanStdCents": 27.7       // mean within-note pitch spread, or null
 }
 ```
 
@@ -54,6 +57,11 @@ detected onset (`librosa.onset.onset_detect`); it's a *hit* within
 `tolerance_sec` (default 0.15s). `scoreTiming` is the fraction of reference
 onsets hit. Note that onset detection needs preceding silence, so reference
 melodies should begin after a short lead-in (not at t=0).
+
+**Stability (Layer C):** the cents spread (std) of the detected pitch *within*
+each note, measured around the note's own median — so it rewards a steady tone
+independent of accuracy (that's Layer A). `scoreStability` falls from 100 as the
+spread grows toward `max_std_cents` (default 100). Vibrato/wobble lowers it.
 
 ## How it fits
 

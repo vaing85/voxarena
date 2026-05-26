@@ -13,7 +13,13 @@ import numpy as np
 import soundfile as sf
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 
-from .scoring import detect_f0, detect_onsets, score_pitch, score_timing
+from .scoring import (
+    detect_f0,
+    detect_onsets,
+    score_pitch,
+    score_stability,
+    score_timing,
+)
 
 app = FastAPI(title="VoxArena Pitch Service", version="0.1.0")
 
@@ -50,9 +56,11 @@ async def analyze(audio: UploadFile = File(...), reference: str = Form("[]")):
     f0, _voiced, times = detect_f0(mono, int(sr))
     pitch = score_pitch(f0, times, notes)
     timing = score_timing(detect_onsets(mono, int(sr)), notes)
+    stability = score_stability(f0, times, notes)
     return {
         "sampleRate": int(sr),
         "durationSec": round(len(y) / float(sr), 3),
         **pitch,
         **timing,
+        **stability,
     }

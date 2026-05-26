@@ -73,7 +73,7 @@ The `playerId` in a request body must match the authenticated identity, or the A
 | GET | `/songs/:id` | One song (UUID) |
 | POST | `/players` | 🔒 Register/link current player. Body: `{ "name": "Optional" }` |
 | POST | `/performances` | 🔒 `playerId`, `songId`, `mode`; optional **`matchId`** for `ranked_pvp`. Response `{ performance, ranked }`. |
-| POST | `/performances/audio` | 🔒 Multipart `audio` (WAV) + `playerId`, `songId`, `mode`. Real pitch **and timing** via the pitch service. Needs `PITCH_SERVICE_URL` + song reference notes. |
+| POST | `/performances/audio` | 🔒 Multipart `audio` (WAV) + `playerId`, `songId`, `mode`. Real pitch, **timing & stability** via the pitch service. Needs `PITCH_SERVICE_URL` + song reference notes. |
 | GET | `/leaderboard` | Query: `songId` (required), `limit` (optional). Excludes house bot. |
 | POST | `/matchmaking/ranked/join` | 🔒 `{ playerId, songId }` — needs **Redis** |
 | POST | `/matchmaking/ranked/leave` | 🔒 `{ playerId }` |
