@@ -16,6 +16,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from .scoring import (
     detect_f0,
     detect_onsets,
+    score_dynamics,
     score_pitch,
     score_stability,
     score_timing,
@@ -57,10 +58,12 @@ async def analyze(audio: UploadFile = File(...), reference: str = Form("[]")):
     pitch = score_pitch(f0, times, notes)
     timing = score_timing(detect_onsets(mono, int(sr)), notes)
     stability = score_stability(f0, times, notes)
+    dynamics = score_dynamics(mono, int(sr), notes)
     return {
         "sampleRate": int(sr),
         "durationSec": round(len(y) / float(sr), 3),
         **pitch,
         **timing,
         **stability,
+        **dynamics,
     }

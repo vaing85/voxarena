@@ -93,6 +93,8 @@ describe("POST /performances/audio", () => {
       scoreStability: 63.2,
       evaluatedNotes: 4,
       meanStdCents: 36.8,
+      scoreDynamics: 88.7,
+      meanCv: 0.113,
     });
 
     const created: any[] = [];
@@ -125,13 +127,16 @@ describe("POST /performances/audio", () => {
     expect(res.body.pitch.scorePitch).toBe(82.4);
     expect(res.body.timing.scoreTiming).toBe(70.6);
     expect(res.body.stability.scoreStability).toBe(63.2);
-    // Real pitch/timing/stability are rounded into the stored layers; total is recomputed.
+    expect(res.body.dynamics.scoreDynamics).toBe(88.7);
+    // Real pitch/timing/stability/dynamics are rounded into the stored layers; total is recomputed.
     expect(res.body.performance.scorePitch).toBe(82);
     expect(res.body.performance.scoreTiming).toBe(71);
     expect(res.body.performance.scoreStability).toBe(63);
+    expect(res.body.performance.scoreDynamics).toBe(89);
     expect(created[0].scorePitch).toBe(82);
     expect(created[0].scoreTiming).toBe(71);
     expect(created[0].scoreStability).toBe(63);
+    expect(created[0].scoreDynamics).toBe(89);
     expect(typeof res.body.performance.scoreTotal).toBe("number");
     expect(analyzePitch).toHaveBeenCalledOnce();
   });
