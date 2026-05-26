@@ -40,7 +40,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 
 | Area | Notes |
 |------|--------|
-| **Pitch ML integration** | Wired: `POST /performances/audio` uploads WAV → Node calls the PYIN service → real Layer A pitch score stored (`Song.referenceNotes` holds the reference melody). Still TODO: live **mic capture** in a client (web client has WAV file-upload only), and real Layers B–E (timing/stability/dynamics/transitions stay heuristic). |
+| **Pitch ML integration** | Wired end-to-end: web client records the **mic** (Web Audio → in-browser WAV) or uploads a WAV → `POST /performances/audio` → Node calls the PYIN service → real Layer A pitch score stored (`Song.referenceNotes` holds the reference melody). Still TODO: real Layers B–E (timing/stability/dynamics/transitions stay heuristic). |
 | **Socket.IO / WebRTC** | Live session sync, mic streaming ([MVP](MVP.md) Phase 3). |
 | **Anti-cheat** | Fingerprinting, review queue. |
 | **Event emitter** | Event schemas defined in `shared/events`; emitting them to a queue is still TODO. |
