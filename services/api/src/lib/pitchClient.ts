@@ -11,6 +11,9 @@ export type PitchAnalysis = {
   matchedOnsets: number;
   referenceOnsets: number;
   meanOnsetErrorMs: number | null;
+  scoreStability: number | null;
+  evaluatedNotes: number;
+  meanStdCents: number | null;
   sampleRate?: number;
   durationSec?: number;
 };

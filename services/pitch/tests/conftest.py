@@ -24,6 +24,16 @@ def melody(notes, sr: int = 22050, gap: float = 0.06, amp: float = 0.5):
     return y, sr
 
 
+def vibrato(freq_hz: float, dur: float = 1.5, sr: int = 22050,
+            rate_hz: float = 5.0, depth_cents: float = 80.0, amp: float = 0.5):
+    """A tone whose pitch oscillates ±depth_cents (unsteady singing)."""
+    n = int(sr * dur)
+    t = np.arange(n) / sr
+    inst = freq_hz * 2.0 ** ((depth_cents / 1200.0) * np.sin(2.0 * np.pi * rate_hz * t))
+    phase = 2.0 * np.pi * np.cumsum(inst) / sr
+    return (amp * np.sin(phase)).astype(np.float32), sr
+
+
 def wav_bytes(y: np.ndarray, sr: int) -> bytes:
     buf = io.BytesIO()
     sf.write(buf, y, sr, format="WAV")
