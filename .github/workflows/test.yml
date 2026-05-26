@@ -1,0 +1,29 @@
+name: API tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - claude/wizardly-goldberg-s60X6
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: services/api/.nvmrc
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm test
