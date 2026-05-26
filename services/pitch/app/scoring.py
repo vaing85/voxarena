@@ -42,6 +42,12 @@ class StabilityResult(TypedDict):
     meanStdCents: Optional[float]     # frame-weighted mean pitch spread within notes
 
 
+class DynamicsResult(TypedDict):
+    scoreDynamics: Optional[float]    # 0–100, or None if no note had enough frames
+    evaluatedNotes: int
+    meanCv: Optional[float]           # frame-weighted mean RMS coefficient of variation
+
+
 def midi_to_hz(midi: float) -> float:
     return 440.0 * (2.0 ** ((midi - 69.0) / 12.0))
 
@@ -206,4 +212,52 @@ def score_stability(
         scoreStability=score,
         evaluatedNotes=len(note_stds),
         meanStdCents=round(mean_std, 1),
+    )
+
+
+def score_dynamics(
+    y: np.ndarray,
+    sr: int,
+    reference: Sequence[ReferenceNote],
+    min_frames: int = 5,
+    max_cv: float = 0.5,
+) -> DynamicsResult:
+    """Score volume control: how steadily each note is held in loudness.
+
+    Without a reference loudness curve (and since mic gain is arbitrary), this
+    measures the RMS coefficient of variation (std/mean) *within* each note —
+    a well-sustained note is even, a fade-out or choppy note varies a lot.
+    Note edges are trimmed so natural attack/release isn't penalised.
+    """
+    rms = librosa.feature.rms(y=y)[0]
+    times = librosa.times_like(rms, sr=sr)
+
+    note_cvs: list[float] = []
+    weights: list[int] = []
+    for note in reference:
+        try:
+            start = float(note["start"])
+            end = float(note["end"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        sel = rms[(times >= start) & (times < end)]
+        if sel.size < min_frames:
+            continue
+        trim = max(1, int(0.1 * sel.size))
+        core = sel[trim:-trim] if sel.size > 2 * trim else sel
+        mean = float(np.mean(core))
+        if mean <= 0:
+            continue
+        note_cvs.append(float(np.std(core)) / mean)
+        weights.append(int(core.size))
+
+    if not note_cvs:
+        return DynamicsResult(scoreDynamics=None, evaluatedNotes=0, meanCv=None)
+
+    mean_cv = float(np.average(note_cvs, weights=weights))
+    score = round(max(0.0, min(100.0, 100.0 * (1.0 - mean_cv / max_cv))), 1)
+    return DynamicsResult(
+        scoreDynamics=score,
+        evaluatedNotes=len(note_cvs),
+        meanCv=round(mean_cv, 3),
     )

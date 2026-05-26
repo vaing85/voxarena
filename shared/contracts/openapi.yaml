@@ -216,6 +216,11 @@ paths:
                       scoreStability: { type: number, nullable: true }
                       meanStdCents: { type: number, nullable: true }
                       evaluatedNotes: { type: integer }
+                  dynamics:
+                    type: object
+                    properties:
+                      scoreDynamics: { type: number, nullable: true }
+                      meanCv: { type: number, nullable: true }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }

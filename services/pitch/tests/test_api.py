@@ -30,6 +30,7 @@ def test_analyze_scores_a_matching_tone_high():
     assert "scoreTiming" in body
     assert body["referenceOnsets"] == 1
     assert body["scoreStability"] is not None
+    assert body["scoreDynamics"] is not None
     assert body["evaluatedNotes"] == 1
 
 

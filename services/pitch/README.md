@@ -44,7 +44,9 @@ Response:
   "meanOnsetErrorMs": 35.1,  // mean onset error vs reference, or null
   "scoreStability": 72.3,    // 0–100, or null if no note had enough frames
   "evaluatedNotes": 4,
-  "meanStdCents": 27.7       // mean within-note pitch spread, or null
+  "meanStdCents": 27.7,      // mean within-note pitch spread, or null
+  "scoreDynamics": 88.7,     // 0–100, or null if no note had enough frames
+  "meanCv": 0.113            // mean within-note RMS coefficient of variation, or null
 }
 ```
 
@@ -62,6 +64,12 @@ melodies should begin after a short lead-in (not at t=0).
 each note, measured around the note's own median — so it rewards a steady tone
 independent of accuracy (that's Layer A). `scoreStability` falls from 100 as the
 spread grows toward `max_std_cents` (default 100). Vibrato/wobble lowers it.
+
+**Dynamics (Layer D):** volume control. With no reference loudness curve (and
+arbitrary mic gain), this measures the RMS coefficient of variation (std/mean)
+*within* each note, with edges trimmed so natural attack/release isn't penalised.
+A well-sustained note is even; fade-outs and choppy/tremolo notes vary more.
+`scoreDynamics` falls from 100 as the CV grows toward `max_cv` (default 0.5).
 
 ## How it fits
 

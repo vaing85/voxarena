@@ -290,7 +290,7 @@ export function performancesRouter(prisma: PrismaClient): Router {
         return;
       }
 
-      // Real pitch (A) + timing (B) + stability (C); D/E stay heuristic.
+      // Real pitch (A) + timing (B) + stability (C) + dynamics (D); E stays heuristic.
       const others = computeStubScores(`${playerId}:${songId}:${Date.now()}`);
       const layers = {
         scorePitch: Math.round(analysis.scorePitch),
@@ -302,7 +302,10 @@ export function performancesRouter(prisma: PrismaClient): Router {
           analysis.scoreStability != null
             ? Math.round(analysis.scoreStability)
             : others.scoreStability,
-        scoreDynamics: others.scoreDynamics,
+        scoreDynamics:
+          analysis.scoreDynamics != null
+            ? Math.round(analysis.scoreDynamics)
+            : others.scoreDynamics,
         scoreTransitions: others.scoreTransitions,
       };
       const scoreTotal = weightedTotal(layers);
@@ -346,6 +349,10 @@ export function performancesRouter(prisma: PrismaClient): Router {
           scoreStability: analysis.scoreStability,
           meanStdCents: analysis.meanStdCents,
           evaluatedNotes: analysis.evaluatedNotes,
+        },
+        dynamics: {
+          scoreDynamics: analysis.scoreDynamics,
+          meanCv: analysis.meanCv,
         },
       });
     }
