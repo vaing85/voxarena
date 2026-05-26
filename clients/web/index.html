@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VoxArena — Dev Client</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --panel: #1a1d28;
+        --line: #2a2f3e;
+        --text: #e6e8ef;
+        --muted: #9aa0b4;
+        --accent: #6c7bff;
+        --good: #3ecf8e;
+        --bad: #ff6b6b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      header h1 { margin: 0; font-size: 18px; }
+      header .tag {
+        font-size: 12px;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 2px 10px;
+      }
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 20px;
+        display: grid;
+        gap: 16px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px;
+      }
+      .panel h2 { margin: 0 0 12px; font-size: 15px; }
+      label { display: block; color: var(--muted); margin: 8px 0 4px; font-size: 12px; }
+      input, select {
+        width: 100%;
+        padding: 8px 10px;
+        background: #11141d;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--text);
+      }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .row5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+      button {
+        margin-top: 12px;
+        padding: 9px 14px;
+        background: var(--accent);
+        color: white;
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button.secondary { background: #2a2f3e; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .who { color: var(--muted); font-size: 13px; }
+      .who b { color: var(--text); }
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+      th { color: var(--muted); font-weight: 600; font-size: 12px; }
+      #log {
+        white-space: pre-wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        background: #0b0d13;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        max-height: 240px;
+        overflow: auto;
+        color: var(--muted);
+      }
+      .ok { color: var(--good); }
+      .err { color: var(--bad); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>VoxArena</h1>
+      <span class="tag">dev client</span>
+      <span class="tag" id="authNote">auth: dev bypass (x-player-id)</span>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>1 · Player</h2>
+        <label for="playerName">Name (optional)</label>
+        <input id="playerName" placeholder="Demo Player" />
+        <button id="createPlayer">Create / register player</button>
+        <p class="who" id="playerInfo">No player yet — create one to start.</p>
+      </section>
+
+      <section class="panel">
+        <h2>2 · Songs</h2>
+        <label for="songSelect">Song</label>
+        <select id="songSelect"><option value="">— load songs —</option></select>
+        <button id="loadSongs" class="secondary">Refresh songs</button>
+      </section>
+
+      <section class="panel">
+        <h2>3 · Submit performance</h2>
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="solo_practice">solo_practice</option>
+          <option value="solo_vs_bot">solo_vs_bot</option>
+          <option value="ranked_pvp">ranked_pvp</option>
+          <option value="tournament">tournament</option>
+        </select>
+        <label>Layer scores (leave all blank for server stub scoring)</label>
+        <div class="row5">
+          <div><label for="sPitch">pitch</label><input id="sPitch" type="number" /></div>
+          <div><label for="sTiming">timing</label><input id="sTiming" type="number" /></div>
+          <div><label for="sStability">stability</label><input id="sStability" type="number" /></div>
+          <div><label for="sDynamics">dynamics</label><input id="sDynamics" type="number" /></div>
+          <div><label for="sTransitions">transitions</label><input id="sTransitions" type="number" /></div>
+        </div>
+        <button id="submitPerf">Submit performance</button>
+      </section>
+
+      <section class="panel">
+        <h2>4 · Solo vs bot</h2>
+        <div class="row">
+          <div>
+            <label for="botPreset">Bot preset</label>
+            <select id="botPreset"><option value="">— load presets —</option></select>
+          </div>
+        </div>
+        <button id="soloVsBot">Sing against the bot</button>
+      </section>
+
+      <section class="panel">
+        <h2>5 · Leaderboard</h2>
+        <button id="loadBoard" class="secondary">Load leaderboard for selected song</button>
+        <table id="boardTable" hidden>
+          <thead><tr><th>#</th><th>Player</th><th>Total</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Activity log</h2>
+        <div id="log"></div>
+      </section>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const state = { playerId: localStorage.getItem("vox.playerId") || null };
+
+      function log(msg, kind) {
+        const el = $("log");
+        const time = new Date().toLocaleTimeString();
+        const cls = kind ? ` class="${kind}"` : "";
+        el.innerHTML = `<div${cls}>[${time}] ${msg}</div>` + el.innerHTML;
+      }
+
+      // All writes carry the dev identity header; body playerId must match it.
+      async function api(path, { method = "GET", body } = {}) {
+        const headers = {};
+        if (body) headers["Content-Type"] = "application/json";
+        if (state.playerId) headers["x-player-id"] = state.playerId;
+        const res = await fetch(path, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const text = await res.text();
+        let data;
+        try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+        if (!res.ok) {
+          log(`${method} ${path} → ${res.status}: ${data.error || text}`, "err");
+          throw new Error(data.error || res.status);
+        }
+        return data;
+      }
+
+      function renderPlayer(p) {
+        $("playerInfo").innerHTML = p
+          ? `Playing as <b>${p.name || "(unnamed)"}</b> · id <b>${p.id}</b> · ${p.tier} · MMR ${p.mmr}`
+          : "No player yet — create one to start.";
+      }
+
+      $("createPlayer").onclick = async () => {
+        try {
+          const name = $("playerName").value.trim();
+          const p = await api("/players", { method: "POST", body: name ? { name } : {} });
+          state.playerId = p.id;
+          localStorage.setItem("vox.playerId", p.id);
+          renderPlayer(p);
+          log(`Created player ${p.id}`, "ok");
+        } catch (e) { /* logged in api() */ }
+      };
+
+      async function loadSongs() {
+        try {
+          const { songs } = await api("/songs");
+          const sel = $("songSelect");
+          sel.innerHTML = songs.length
+            ? songs.map((s) => `<option value="${s.id}">${s.title} (${s.difficulty})</option>`).join("")
+            : `<option value="">no songs — run db:seed</option>`;
+          log(`Loaded ${songs.length} song(s)`, "ok");
+        } catch (e) {}
+      }
+      $("loadSongs").onclick = loadSongs;
+
+      async function loadPresets() {
+        try {
+          const { presets } = await api("/bot/presets");
+          $("botPreset").innerHTML = presets.map((p) => `<option value="${p}">${p}</option>`).join("");
+        } catch (e) {}
+      }
+
+      function songId() { return $("songSelect").value; }
+      function num(id) {
+        const v = $(id).value;
+        return v === "" ? undefined : Number(v);
+      }
+      function layerScores() {
+        const vals = ["sPitch","sTiming","sStability","sDynamics","sTransitions"].map(num);
+        if (vals.every((v) => v === undefined)) return null;
+        const [p, t, st, d, tr] = vals;
+        const total = Math.round(p*0.4 + t*0.25 + st*0.15 + d*0.1 + tr*0.1);
+        return { scorePitch: p, scoreTiming: t, scoreStability: st, scoreDynamics: d, scoreTransitions: tr, scoreTotal: total };
+      }
+
+      $("submitPerf").onclick = async () => {
+        if (!state.playerId) return log("Create a player first.", "err");
+        if (!songId()) return log("Pick a song first.", "err");
+        try {
+          const body = { playerId: state.playerId, songId: songId(), mode: $("mode").value };
+          const scores = layerScores();
+          if (scores) Object.assign(body, scores);
+          const { performance, ranked } = await api("/performances", { method: "POST", body });
+          log(`Performance scored ${performance.scoreTotal}${ranked ? " · ranked: " + JSON.stringify(ranked) : ""}`, "ok");
+        } catch (e) {}
+      };
+
+      $("soloVsBot").onclick = async () => {
+        if (!state.playerId) return log("Create a player first.", "err");
+        if (!songId()) return log("Pick a song first.", "err");
+        if (!$("botPreset").value) return log("Pick a bot preset.", "err");
+        try {
+          const r = await api("/bot/solo-vs-bot", {
+            method: "POST",
+            body: { playerId: state.playerId, songId: songId(), botPreset: $("botPreset").value },
+          });
+          log(`You ${r.youWon ? "WON" : "lost"} — you ${r.scores.human} vs bot ${r.scores.bot}`, r.youWon ? "ok" : "err");
+        } catch (e) {}
+      };
+
+      $("loadBoard").onclick = async () => {
+        if (!songId()) return log("Pick a song first.", "err");
+        try {
+          const { leaderboard } = await api(`/leaderboard?songId=${songId()}&limit=20`);
+          const tb = $("boardTable").querySelector("tbody");
+          tb.innerHTML = leaderboard.map((row) =>
+            `<tr><td>${row.rank}</td><td>${row.player?.name || row.playerId}</td><td>${row.scoreTotal ?? "-"}</td></tr>`
+          ).join("");
+          $("boardTable").hidden = leaderboard.length === 0;
+          log(`Leaderboard: ${leaderboard.length} row(s)`, "ok");
+        } catch (e) {}
+      };
+
+      // Boot
+      if (state.playerId) renderPlayer({ id: state.playerId, name: "(saved)", tier: "?", mmr: "?" });
+      loadSongs();
+      loadPresets();
+    </script>
+  </body>
+</html>

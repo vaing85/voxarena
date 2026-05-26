@@ -1,6 +1,8 @@
 /** VoxArena API */
 import express, { type ErrorRequestHandler } from "express";
 import "express-async-errors";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { redisPing } from "./lib/redis.js";
 import { songsRouter } from "./routes/songs.js";
@@ -88,6 +90,15 @@ app.use("/leaderboard", leaderboardRouter(prisma));
 app.use("/matchmaking", matchmakingRouter(prisma));
 app.use("/bot", botDuelRouter(prisma));
 
+// Optional static dev client. Served only when the directory is present (local
+// dev / full-repo deploy); absent when the API is deployed from services/api alone.
+const clientDir =
+  process.env.CLIENT_DIR ?? path.resolve(__dirname, "../../../clients/web");
+const clientAvailable = existsSync(path.join(clientDir, "index.html"));
+if (clientAvailable) {
+  app.use(express.static(clientDir));
+}
+
 // Catch errors thrown in any (sync or async) route handler so a failure
 // returns 500 instead of crashing the process. Relies on express-async-errors
 // to forward rejected promises here.
@@ -110,6 +121,9 @@ async function main() {
     console.log("  POST /matchmaking/ranked/join  POST /matchmaking/ranked/leave");
     console.log("  GET  /matchmaking/ranked/pending/:playerId");
     console.log("  GET  /bot/presets  POST /bot/solo-vs-bot");
+    if (clientAvailable) {
+      console.log(`  Web dev client at http://localhost:${PORT}/`);
+    }
   });
 }
 
