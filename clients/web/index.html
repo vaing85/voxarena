@@ -159,6 +159,12 @@
       </section>
 
       <section class="panel">
+        <h2>6 · Store (song packs)</h2>
+        <button id="loadStore" class="secondary">Load packs</button>
+        <div id="packs"></div>
+      </section>
+
+      <section class="panel">
         <h2>Activity log</h2>
         <div id="log"></div>
       </section>
@@ -282,10 +288,47 @@
         } catch (e) {}
       };
 
+      function money(cents, currency) {
+        return new Intl.NumberFormat(undefined, { style: "currency", currency: (currency || "usd").toUpperCase() }).format((cents || 0) / 100);
+      }
+
+      async function loadStore() {
+        try {
+          const { packs } = await api("/store/packs");
+          const el = $("packs");
+          if (!packs.length) { el.innerHTML = `<p class="who">No packs yet — run db:seed.</p>`; return; }
+          el.innerHTML = packs.map((p) => {
+            const btn = p.owned
+              ? `<span class="ok">owned</span>`
+              : p.purchasable
+                ? `<button data-pack="${p.id}" class="buy">Buy ${money(p.priceCents, p.currency)}</button>`
+                : `<span class="who">not purchasable yet</span>`;
+            return `<div style="border-top:1px solid var(--line);padding:10px 0;display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <div><b>${p.name}</b> · ${p.songCount} song(s)<br><span class="who">${p.description || ""}</span></div>
+              <div>${btn}</div>
+            </div>`;
+          }).join("");
+          el.querySelectorAll("button.buy").forEach((b) => {
+            b.onclick = () => buyPack(b.getAttribute("data-pack"));
+          });
+          log(`Loaded ${packs.length} pack(s)`, "ok");
+        } catch (e) {}
+      }
+      $("loadStore").onclick = loadStore;
+
+      async function buyPack(packId) {
+        if (!state.playerId) return log("Create a player first.", "err");
+        try {
+          const { url } = await api("/store/checkout", { method: "POST", body: { packId } });
+          if (url) { log("Redirecting to Stripe checkout…", "ok"); window.location.href = url; }
+        } catch (e) { /* logged in api(); 503 if Stripe not configured */ }
+      }
+
       // Boot
       if (state.playerId) renderPlayer({ id: state.playerId, name: "(saved)", tier: "?", mmr: "?" });
       loadSongs();
       loadPresets();
+      loadStore();
     </script>
   </body>
 </html>

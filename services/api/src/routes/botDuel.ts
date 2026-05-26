@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { isUuidString } from "../lib/ids.js";
 import { requireAuth } from "../lib/auth.js";
+import { canPlaySong } from "../lib/entitlements.js";
 import { HOUSE_BOT_DEVICE_ID } from "../config.js";
 import { generateBotScores, listBotPresets, type BotPreset } from "../lib/bots.js";
 import { computeStubScores } from "../lib/stubScore.js";
@@ -53,6 +54,12 @@ export function botDuelRouter(prisma: PrismaClient): Router {
 
     if (!human || !song) {
       res.status(404).json({ error: "Player or song not found" });
+      return;
+    }
+    if (!(await canPlaySong(prisma, human.id, song))) {
+      res
+        .status(403)
+        .json({ error: "Song is locked — purchase the pack to play it" });
       return;
     }
     if (!houseBot) {

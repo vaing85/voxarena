@@ -15,11 +15,33 @@ async function main() {
     });
   }
 
-  // Demo song (find-or-create so re-seeding doesn't duplicate).
+  // Demo song (find-or-create so re-seeding doesn't duplicate). Free for all.
   let song = await prisma.song.findFirst({ where: { title: "Demo Song" } });
   if (!song) {
     song = await prisma.song.create({
       data: { title: "Demo Song", artist: "VoxArena", difficulty: "easy" },
+    });
+  }
+
+  // Starter song pack (monetization demo) + a song locked behind it.
+  let pack = await prisma.songPack.findUnique({ where: { slug: "starter-pack" } });
+  if (!pack) {
+    pack = await prisma.songPack.create({
+      data: {
+        slug: "starter-pack",
+        name: "Starter Pack",
+        description: "A few extra songs to get you going.",
+        priceCents: 499,
+        currency: "usd",
+        // stripePriceId left null until a real Stripe price is wired (price_...).
+      },
+    });
+  }
+
+  const packedSong = await prisma.song.findFirst({ where: { title: "Encore" } });
+  if (!packedSong) {
+    await prisma.song.create({
+      data: { title: "Encore", artist: "VoxArena", difficulty: "medium", packId: pack.id },
     });
   }
 
@@ -32,6 +54,7 @@ async function main() {
   console.log("Seed complete.");
   console.log(`SONG_ID=${song.id}`);
   console.log(`PLAYER_ID=${player.id}`);
+  console.log(`PACK_ID=${pack.id} (slug: starter-pack — locks "Encore")`);
 }
 
 main()
