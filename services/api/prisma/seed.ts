@@ -15,12 +15,13 @@ async function main() {
     });
   }
 
-  // A short reference melody (C4 D4 E4 F4) for pitch scoring demos.
+  // A short reference melody (C4 D4 E4 F4) for pitch/timing scoring demos.
+  // Starts after a brief lead-in so the first note's onset is detectable.
   const referenceNotes = [
-    { start: 0.0, end: 0.5, midi: 60 },
-    { start: 0.5, end: 1.0, midi: 62 },
-    { start: 1.0, end: 1.5, midi: 64 },
-    { start: 1.5, end: 2.0, midi: 65 },
+    { start: 0.3, end: 0.8, midi: 60 },
+    { start: 0.8, end: 1.3, midi: 62 },
+    { start: 1.3, end: 1.8, midi: 64 },
+    { start: 1.8, end: 2.3, midi: 65 },
   ];
 
   // Demo song (find-or-create so re-seeding doesn't duplicate). Free for all.
