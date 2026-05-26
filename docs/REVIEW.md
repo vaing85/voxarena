@@ -40,7 +40,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 
 | Area | Notes |
 |------|--------|
-| **Real pitch ML** | Python + CREPE/PYIN (or similar); replace stub / heuristic layers. |
+| **Pitch ML integration** | Standalone PYIN pitch service exists (`services/pitch`, real Layer A scoring + tests). Still TODO: per-song reference pitch, client audio capture, and Node calling it to replace the stub pitch layer. |
 | **Socket.IO / WebRTC** | Live session sync, mic streaming ([MVP](MVP.md) Phase 3). |
 | **Anti-cheat** | Fingerprinting, review queue. |
 | **Event emitter** | Event schemas defined in `shared/events`; emitting them to a queue is still TODO. |
