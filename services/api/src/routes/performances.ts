@@ -8,6 +8,7 @@ import { tryFinalizeRankedMatch } from "../lib/rankedMatch.js";
 import { requireAuth } from "../lib/auth.js";
 import { canPlaySong } from "../lib/entitlements.js";
 import { analyzePitch, isPitchServiceConfigured } from "../lib/pitchClient.js";
+import { emitPerformanceRecorded } from "../lib/events.js";
 import { HOUSE_BOT_DEVICE_ID } from "../config.js";
 
 const upload = multer({
@@ -166,6 +167,7 @@ export function performancesRouter(prisma: PrismaClient): Router {
         player: { select: { id: true, name: true } },
       },
     });
+    void emitPerformanceRecorded(performance);
 
     let rankedResult: Awaited<ReturnType<typeof tryFinalizeRankedMatch>> | null =
       null;
@@ -328,6 +330,7 @@ export function performancesRouter(prisma: PrismaClient): Router {
           player: { select: { id: true, name: true } },
         },
       });
+      void emitPerformanceRecorded(performance);
 
       let rankedResult: Awaited<ReturnType<typeof tryFinalizeRankedMatch>> | null = null;
       if (matchId && mode === "ranked_pvp") {

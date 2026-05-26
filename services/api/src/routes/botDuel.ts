@@ -6,6 +6,7 @@ import { canPlaySong } from "../lib/entitlements.js";
 import { HOUSE_BOT_DEVICE_ID } from "../config.js";
 import { generateBotScores, listBotPresets, type BotPreset } from "../lib/bots.js";
 import { computeStubScores } from "../lib/stubScore.js";
+import { emitMatchCompleted, emitPerformanceRecorded } from "../lib/events.js";
 
 export function botDuelRouter(prisma: PrismaClient): Router {
   const r = Router();
@@ -167,6 +168,19 @@ export function botDuelRouter(prisma: PrismaClient): Router {
         matchesPlayed: { increment: 1 },
         matchesWon: { increment: humanWins ? 1 : 0 },
       },
+    });
+
+    void emitPerformanceRecorded({ ...humanPerf, matchId: match.id });
+    void emitMatchCompleted({
+      matchId: match.id,
+      songId,
+      mode: "solo_vs_bot",
+      player1Id: human.id,
+      player2Id: houseBot.id,
+      winnerId,
+      player1Score: humanTotal,
+      player2Score: botTotal,
+      mmr: null,
     });
 
     res.status(201).json({
