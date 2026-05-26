@@ -24,6 +24,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 | **Performances** | `POST /performances` — body includes optional **`matchId`** for **`ranked_pvp`**. Response: `{ performance, ranked }` (`ranked` is `null` unless a ranked match was finalized). |
 | **Ranked** | `POST /matchmaking/ranked/join`, `POST /matchmaking/ranked/leave`, `GET /matchmaking/ranked/pending/:playerId` — **requires `REDIS_URL`**. |
 | **Solo vs bot** | `GET /bot/presets`, `POST /bot/solo-vs-bot` — `botPreset`: `rookie` \| `pro` \| `metro` \| `soul`. |
+| **Auth** | Supabase token verification + `supabaseUserId` linking; write endpoints gated by `requireAuth`; `AUTH_DEV_BYPASS` for local dev. Reads stay public. |
 | **Health** | `/health` reports `phase: 2`. |
 
 **Ranked flow:** join queue (same `songId`) → on pair, **`matchId`** returned → both players `POST /performances` with `mode: "ranked_pvp"`, same `songId`, and **`matchId`** → when both scores are in, **ELO** runs and **`Match`** is **`completed`**.
@@ -38,7 +39,6 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 |------|--------|
 | **Real pitch ML** | Python + CREPE/PYIN (or similar); replace stub / heuristic layers. |
 | **Socket.IO / WebRTC** | Live session sync, mic streaming ([MVP](MVP.md) Phase 3). |
-| **Auth** | Supabase Auth or JWT + link `supabaseUserId`. |
 | **Anti-cheat** | Fingerprinting, review queue. |
 | **Shared contracts** | OpenAPI / event schemas in `shared/`. |
 | **Game client** | Unity / Godot / web harness. |

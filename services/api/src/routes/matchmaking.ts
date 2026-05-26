@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { isUuidString } from "../lib/ids.js";
+import { requireAuth } from "../lib/auth.js";
 import {
   getMatchmakingRedis,
   rankedJoin,
@@ -14,7 +15,7 @@ import {
 export function matchmakingRouter(prisma: PrismaClient): Router {
   const r = Router();
 
-  r.post("/ranked/join", async (req, res) => {
+  r.post("/ranked/join", requireAuth(prisma), async (req, res) => {
     const redis = getMatchmakingRedis();
     if (!redis) {
       res.status(503).json({ error: "Matchmaking requires REDIS_URL" });
@@ -28,6 +29,12 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
     }
     if (!isUuidString(playerId) || !isUuidString(songId)) {
       res.status(400).json({ error: "Invalid UUID" });
+      return;
+    }
+    if (req.player && req.player.id !== playerId) {
+      res
+        .status(403)
+        .json({ error: "playerId does not match the authenticated user" });
       return;
     }
 
@@ -77,7 +84,7 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
     });
   });
 
-  r.post("/ranked/leave", async (req, res) => {
+  r.post("/ranked/leave", requireAuth(prisma), async (req, res) => {
     const redis = getMatchmakingRedis();
     if (!redis) {
       res.status(503).json({ error: "Matchmaking requires REDIS_URL" });
@@ -86,6 +93,12 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
     const { playerId } = req.body ?? {};
     if (typeof playerId !== "string" || !isUuidString(playerId)) {
       res.status(400).json({ error: "playerId (UUID) required" });
+      return;
+    }
+    if (req.player && req.player.id !== playerId) {
+      res
+        .status(403)
+        .json({ error: "playerId does not match the authenticated user" });
       return;
     }
     const songId = await getPlayerQueuedSong(redis, playerId);
@@ -97,7 +110,7 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
     res.json({ left: true, songId });
   });
 
-  r.get("/ranked/pending/:playerId", async (req, res) => {
+  r.get("/ranked/pending/:playerId", requireAuth(prisma), async (req, res) => {
     const redis = getMatchmakingRedis();
     if (!redis) {
       res.status(503).json({ error: "Matchmaking requires REDIS_URL" });
@@ -106,6 +119,12 @@ export function matchmakingRouter(prisma: PrismaClient): Router {
     const { playerId } = req.params;
     if (!isUuidString(playerId)) {
       res.status(400).json({ error: "Invalid playerId" });
+      return;
+    }
+    if (req.player && req.player.id !== playerId) {
+      res
+        .status(403)
+        .json({ error: "playerId does not match the authenticated user" });
       return;
     }
     const matchId = await getPendingMatch(redis, playerId);

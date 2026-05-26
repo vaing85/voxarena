@@ -3,6 +3,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { isUuidString } from "../lib/ids.js";
 import { computeStubScores } from "../lib/stubScore.js";
 import { tryFinalizeRankedMatch } from "../lib/rankedMatch.js";
+import { requireAuth } from "../lib/auth.js";
 import { HOUSE_BOT_DEVICE_ID } from "../config.js";
 
 const MODES = new Set([
@@ -15,7 +16,7 @@ const MODES = new Set([
 export function performancesRouter(prisma: PrismaClient): Router {
   const r = Router();
 
-  r.post("/", async (req, res) => {
+  r.post("/", requireAuth(prisma), async (req, res) => {
     const { playerId, songId, mode, matchId } = req.body ?? {};
     if (
       typeof playerId !== "string" ||
@@ -39,6 +40,12 @@ export function performancesRouter(prisma: PrismaClient): Router {
       res.status(400).json({
         error: `mode must be one of: ${[...MODES].join(", ")}`,
       });
+      return;
+    }
+    if (req.player && req.player.id !== playerId) {
+      res
+        .status(403)
+        .json({ error: "playerId does not match the authenticated user" });
       return;
     }
 
