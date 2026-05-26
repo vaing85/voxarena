@@ -15,11 +15,29 @@ async function main() {
     });
   }
 
+  // A short reference melody (C4 D4 E4 F4) for pitch scoring demos.
+  const referenceNotes = [
+    { start: 0.0, end: 0.5, midi: 60 },
+    { start: 0.5, end: 1.0, midi: 62 },
+    { start: 1.0, end: 1.5, midi: 64 },
+    { start: 1.5, end: 2.0, midi: 65 },
+  ];
+
   // Demo song (find-or-create so re-seeding doesn't duplicate). Free for all.
   let song = await prisma.song.findFirst({ where: { title: "Demo Song" } });
   if (!song) {
     song = await prisma.song.create({
-      data: { title: "Demo Song", artist: "VoxArena", difficulty: "easy" },
+      data: {
+        title: "Demo Song",
+        artist: "VoxArena",
+        difficulty: "easy",
+        referenceNotes,
+      },
+    });
+  } else if (song.referenceNotes == null) {
+    song = await prisma.song.update({
+      where: { id: song.id },
+      data: { referenceNotes },
     });
   }
 

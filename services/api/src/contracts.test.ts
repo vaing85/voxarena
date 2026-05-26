@@ -22,6 +22,7 @@ describe("OpenAPI contract (shared/contracts/openapi.yaml)", () => {
       "/songs/{id}",
       "/players",
       "/performances",
+      "/performances/audio",
       "/leaderboard",
       "/matchmaking/ranked/join",
       "/matchmaking/ranked/leave",

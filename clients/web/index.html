@@ -139,6 +139,14 @@
       </section>
 
       <section class="panel">
+        <h2>3b · Audio scoring (real pitch)</h2>
+        <p class="who">Upload a WAV recording; the server scores pitch against the song's reference melody via the pitch service.</p>
+        <label for="audioFile">WAV file</label>
+        <input id="audioFile" type="file" accept="audio/wav,.wav" />
+        <button id="submitAudio">Score audio</button>
+      </section>
+
+      <section class="panel">
         <h2>4 · Solo vs bot</h2>
         <div class="row">
           <div>
@@ -260,6 +268,32 @@
           const { performance, ranked } = await api("/performances", { method: "POST", body });
           log(`Performance scored ${performance.scoreTotal}${ranked ? " · ranked: " + JSON.stringify(ranked) : ""}`, "ok");
         } catch (e) {}
+      };
+
+      $("submitAudio").onclick = async () => {
+        if (!state.playerId) return log("Create a player first.", "err");
+        if (!songId()) return log("Pick a song first.", "err");
+        const file = $("audioFile").files[0];
+        if (!file) return log("Choose a .wav file.", "err");
+        try {
+          const fd = new FormData();
+          fd.append("audio", file);
+          fd.append("playerId", state.playerId);
+          fd.append("songId", songId());
+          fd.append("mode", $("mode").value);
+          // No Content-Type header: the browser sets the multipart boundary.
+          const res = await fetch("/performances/audio", {
+            method: "POST",
+            headers: { "x-player-id": state.playerId },
+            body: fd,
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            log(`POST /performances/audio → ${res.status}: ${data.error || ""}`, "err");
+            return;
+          }
+          log(`Pitch ${data.pitch.scorePitch} (±${data.pitch.meanCentsError ?? "?"} cents) · total ${data.performance.scoreTotal}`, "ok");
+        } catch (e) { log(String(e), "err"); }
       };
 
       $("soloVsBot").onclick = async () => {
