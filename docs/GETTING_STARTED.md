@@ -86,6 +86,8 @@ The `playerId` in a request body must match the authenticated identity, or the A
 
 🔒 = requires auth (Bearer token, or `x-player-id` header in dev bypass). Modes: `solo_practice`, `solo_vs_bot`, `ranked_pvp`, `tournament`. Locked songs (in a pack you don't own) return `403` when you try to play them.
 
+**Live PvP (Socket.IO):** once matchmaking pairs two players, both connect a socket (identity via handshake `auth: { token }` or `{ playerId }`) and `match:join` the `matchId`. The server coordinates presence, a synced `match:start` countdown, and `opponent:progress` relay; scores are still submitted via `/performances` and the authoritative `match:result` is pushed to the room on finalize. Event reference: [shared/contracts/README.md](../shared/contracts/README.md).
+
 ---
 
 ## 5. Next steps

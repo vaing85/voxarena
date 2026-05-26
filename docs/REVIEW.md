@@ -41,7 +41,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 | Area | Notes |
 |------|--------|
 | **Scoring engine (real)** | Complete — **all five layers real**, end-to-end: web client records the **mic** (Web Audio → in-browser WAV) or uploads a WAV → `POST /performances/audio` → Node calls the PYIN service → **A pitch** + **B timing** + **C stability** + **D dynamics** + **E transitions** stored (`Song.referenceNotes` holds the reference melody). A stub fills any layer the audio can't exercise (e.g. a single-note song has no transitions). |
-| **Socket.IO / WebRTC** | Live session sync, mic streaming ([MVP](MVP.md) Phase 3). |
+| **Live PvP (realtime)** | Socket.IO coordination shipped: rooms, presence, synced countdown/start, opponent-progress relay, and authoritative `match:result` push on ranked finalize (`services/api/src/realtime`). Still TODO: client UI, mic streaming/WebRTC. |
 | **Anti-cheat** | Fingerprinting, review queue. |
 | **Event consumer** | API now emits `performance.recorded` / `match.completed` / `entitlement.granted` to the Redis Stream `voxarena:events`. A consumer (analytics / anti-cheat ingestion) is still TODO. |
 | **Game client** | Unity / Godot (web dev harness exists in `clients/web`). |
