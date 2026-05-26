@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { getRedis } from "./redis.js";
 import { applyElo1v1, tierFromMmr } from "./mmr.js";
 import { emitMatchCompleted } from "./events.js";
+import { publishMatchFinalized } from "./matchBus.js";
 
 const PENDING_PREFIX = "voxarena:pending:";
 
@@ -110,6 +111,17 @@ export async function tryFinalizeRankedMatch(
     player1Id: match.player1Id,
     player2Id: match.player2Id,
     winnerId,
+    player1Score: s1,
+    player2Score: s2,
+    mmr,
+  });
+
+  publishMatchFinalized({
+    matchId,
+    songId: match.songId,
+    winnerId,
+    player1Id: match.player1Id,
+    player2Id: match.player2Id,
     player1Score: s1,
     player2Score: s2,
     mmr,

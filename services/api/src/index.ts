@@ -1,10 +1,13 @@
 /** VoxArena API */
 import express, { type ErrorRequestHandler } from "express";
 import "express-async-errors";
+import { createServer } from "node:http";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
+import { Server as SocketServer } from "socket.io";
 import { redisPing } from "./lib/redis.js";
+import { setupLiveMatch } from "./realtime/liveMatch.js";
 import { songsRouter } from "./routes/songs.js";
 import { playersRouter } from "./routes/players.js";
 import {
@@ -118,8 +121,12 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 };
 app.use(errorHandler);
 
+const httpServer = createServer(app);
+const io = new SocketServer(httpServer, { cors: { origin: "*" } });
+setupLiveMatch(io, prisma);
+
 async function main() {
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     console.log(`VoxArena API listening on http://localhost:${PORT}`);
     console.log(
       "  GET  /health /health/db /health/redis /health/supabase /health/resend"
@@ -132,6 +139,7 @@ async function main() {
     console.log("  GET  /matchmaking/ranked/pending/:playerId");
     console.log("  GET  /bot/presets  POST /bot/solo-vs-bot");
     console.log("  GET  /store/packs  POST /store/checkout  POST /store/webhook");
+    console.log("  WS   live PvP (Socket.IO): match:join / match:progress / match:result");
     if (clientAvailable) {
       console.log(`  Web dev client at http://localhost:${PORT}/`);
     }

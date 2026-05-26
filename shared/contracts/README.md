@@ -16,6 +16,27 @@ HTTP surface (paths, request/response shapes, auth schemes, error codes).
 Auth schemes: `bearerAuth` (Supabase access token) and `devPlayerId`
 (`x-player-id` header, local dev only). Reads are public; writes require auth.
 
-## Socket.IO (later)
+## Socket.IO — live PvP
 
-Add realtime event names + payload shapes here when live PvP lands.
+Realtime session coordination (`services/api/src/realtime/liveMatch.ts`). The
+socket layer is **not** score-authoritative: players submit scored performances
+via REST, and the authoritative result is pushed here when the ranked match
+finalizes. Identity is passed in the handshake: `auth: { token }` (Supabase) or
+`auth: { playerId }` (dev bypass).
+
+**Client → server**
+
+| Event | Payload | Notes |
+|-------|---------|-------|
+| `match:join` | `{ matchId }` | Join the room; must be a participant of a pending match. |
+| `match:progress` | `{ score }` | Live, non-authoritative; relayed to the opponent. |
+
+**Server → client**
+
+| Event | Payload |
+|-------|---------|
+| `match:presence` | `{ matchId, players: string[] }` |
+| `match:start` | `{ matchId, startsAt }` (emitted once both players are present; `startsAt` is a synchronized countdown timestamp) |
+| `opponent:progress` | `{ playerId, score }` |
+| `match:result` | `{ matchId, winnerId, player1Id, player2Id, player1Score, player2Score, mmr }` |
+| `match:error` | `{ error }` |
