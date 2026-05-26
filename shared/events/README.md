@@ -10,9 +10,15 @@ integer `version`, and an ISO `occurredAt` timestamp.
 | `match.completed.json` | A match is finalized and MMR applied. |
 | `entitlement.granted.json` | A player gains a pack (purchase or grant). |
 
-These define the **contract**; wiring an emitter (e.g. to Redis/queue) is a
-follow-up. `services/api/src/contracts.test.ts` validates each schema's
-envelope and that its `event` const matches the filename.
+**Emitter:** the API publishes these events from `services/api/src/lib/events.ts`.
+When `REDIS_URL` is set they're appended to the Redis Stream `voxarena:events`
+(`XADD`, fields `event` + JSON `data`); otherwise they're logged in dev. Emission
+is fire-and-forget and never fails the request. A consumer (analytics /
+anti-cheat) reads the stream — still TODO.
+
+`services/api/src/contracts.test.ts` validates each schema's envelope and that
+its `event` const matches the filename; `events.test.ts` checks the emitter's
+output conforms to these schemas (required keys + `additionalProperties: false`).
 
 Future events (per [ARCHITECTURE](../../docs/ARCHITECTURE.md)): `note_result`,
 `phrase_result`, finer-grained signals for anti-cheat.

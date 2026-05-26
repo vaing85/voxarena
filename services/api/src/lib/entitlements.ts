@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { emitEntitlementGranted } from "./events.js";
 
 /** A song is playable if it is free (no pack) or the player owns its pack. */
 export async function canPlaySong(
@@ -52,6 +53,12 @@ export async function grantEntitlementFromSession(
       source: "purchase",
       stripeSessionId: session.id ?? undefined,
     },
+  });
+  void emitEntitlementGranted({
+    playerId,
+    packId,
+    source: "purchase",
+    stripeSessionId: session.id ?? null,
   });
   return { granted: true };
 }
