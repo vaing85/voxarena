@@ -14,10 +14,19 @@ import {
 import { getSupabaseAdmin } from "./lib/supabase.js";
 import { matchmakingRouter } from "./routes/matchmaking.js";
 import { botDuelRouter } from "./routes/botDuel.js";
+import { storeRouter, storeWebhookHandler } from "./routes/store.js";
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT ?? 3000;
+
+// Stripe webhook needs the raw body for signature verification, so it must be
+// registered before the JSON body parser.
+app.post(
+  "/store/webhook",
+  express.raw({ type: "application/json" }),
+  storeWebhookHandler(prisma)
+);
 
 app.use(express.json());
 
@@ -89,6 +98,7 @@ app.use("/performances", performancesRouter(prisma));
 app.use("/leaderboard", leaderboardRouter(prisma));
 app.use("/matchmaking", matchmakingRouter(prisma));
 app.use("/bot", botDuelRouter(prisma));
+app.use("/store", storeRouter(prisma));
 
 // Optional static dev client. Served only when the directory is present (local
 // dev / full-repo deploy); absent when the API is deployed from services/api alone.
@@ -121,6 +131,7 @@ async function main() {
     console.log("  POST /matchmaking/ranked/join  POST /matchmaking/ranked/leave");
     console.log("  GET  /matchmaking/ranked/pending/:playerId");
     console.log("  GET  /bot/presets  POST /bot/solo-vs-bot");
+    console.log("  GET  /store/packs  POST /store/checkout  POST /store/webhook");
     if (clientAvailable) {
       console.log(`  Web dev client at http://localhost:${PORT}/`);
     }

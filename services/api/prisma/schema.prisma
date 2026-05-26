@@ -29,6 +29,7 @@ model Player {
   performances Performance[]
   matchesAs1   Match[]       @relation("Player1Matches")
   matchesAs2   Match[]       @relation("Player2Matches")
+  entitlements Entitlement[]
 }
 
 model Song {
@@ -40,8 +41,52 @@ model Song {
   difficulty  String
   referenceId String?
 
+  /// When set, the song is locked behind the pack; null = free for everyone.
+  packId String?
+  pack   SongPack? @relation(fields: [packId], references: [id], onDelete: SetNull)
+
   performances Performance[]
   matches      Match[]
+
+  @@index([packId])
+}
+
+/// A purchasable bundle of songs (monetization: no pay-to-win — content only).
+model SongPack {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  slug        String  @unique
+  name        String
+  description String?
+
+  priceCents Int    @default(0)
+  currency   String @default("usd")
+  /// Stripe Price id (price_...). Null until a price is wired; pack not purchasable yet.
+  stripePriceId String?
+  active        Boolean @default(true)
+
+  songs        Song[]
+  entitlements Entitlement[]
+}
+
+/// Records that a player owns a pack (via purchase or manual grant).
+model Entitlement {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  playerId String
+  packId   String
+  source   String @default("purchase") // purchase | grant
+
+  /// Stripe Checkout Session id — unique so webhook delivery is idempotent.
+  stripeSessionId String? @unique
+
+  player Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  pack   SongPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, packId])
+  @@index([playerId])
 }
 
 model Performance {

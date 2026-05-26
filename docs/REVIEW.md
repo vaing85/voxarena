@@ -25,6 +25,8 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 | **Ranked** | `POST /matchmaking/ranked/join`, `POST /matchmaking/ranked/leave`, `GET /matchmaking/ranked/pending/:playerId` — **requires `REDIS_URL`**. |
 | **Solo vs bot** | `GET /bot/presets`, `POST /bot/solo-vs-bot` — `botPreset`: `rookie` \| `pro` \| `metro` \| `soul`. |
 | **Auth** | Supabase token verification + `supabaseUserId` linking; write endpoints gated by `requireAuth`; `AUTH_DEV_BYPASS` for local dev. Reads stay public. |
+| **Monetization** | Song packs: `SongPack`/`Entitlement` models, `GET /store/packs`, `POST /store/checkout` (Stripe), signature-verified `POST /store/webhook` granting entitlements; locked songs gated on play. |
+| **Web dev client** | `clients/web` static page served by the API; full loop + store. |
 | **Health** | `/health` reports `phase: 2`. |
 
 **Ranked flow:** join queue (same `songId`) → on pair, **`matchId`** returned → both players `POST /performances` with `mode: "ranked_pvp"`, same `songId`, and **`matchId`** → when both scores are in, **ELO** runs and **`Match`** is **`completed`**.

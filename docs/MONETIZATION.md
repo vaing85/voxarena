@@ -29,3 +29,24 @@ Monetization that doesn’t affect competitive fairness.
 - **Anything that changes competitive outcome for pay** = no.
 
 This keeps the game fair while giving clear, ethical revenue streams.
+
+---
+
+## Implemented: song packs (Stripe)
+
+The first revenue stream is wired end to end (Stripe IDs/keys come from env — no
+products are created in any live account by the code):
+
+| Piece | Where |
+|-------|-------|
+| **Model** | `SongPack` (slug, price, `stripePriceId`, active) and `Entitlement` (`@@unique([playerId, packId])`); `Song.packId` locks a song to a pack (null = free). |
+| **Browse** | `GET /store/packs` — active packs with `songCount`, `purchasable`, and `owned` (when authenticated). |
+| **Buy** | `POST /store/checkout` (auth) — creates a Stripe Checkout Session for the pack's `stripePriceId`, returns `{ url }`. `503` if Stripe unset; `409` if not yet purchasable or already owned. |
+| **Fulfilment** | `POST /store/webhook` — signature-verified; on `checkout.session.completed` it grants the entitlement idempotently (keyed on the session id + the player/pack unique). |
+| **Enforcement** | Playing a song (`POST /performances`, `POST /bot/solo-vs-bot`) returns `403` if the song is locked and unowned. Cosmetic/fairness: packs add **content only**, never scoring weights. |
+
+**To go live:** create a Stripe Product + Price for each pack, set `stripePriceId`
+on the `SongPack` row, set `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`, and point
+a Stripe webhook at `POST /store/webhook`.
+
+**Next streams:** cosmetics / voice skins, season passes, tournament entries.

@@ -4,6 +4,7 @@ import { isUuidString } from "../lib/ids.js";
 import { computeStubScores } from "../lib/stubScore.js";
 import { tryFinalizeRankedMatch } from "../lib/rankedMatch.js";
 import { requireAuth } from "../lib/auth.js";
+import { canPlaySong } from "../lib/entitlements.js";
 import { HOUSE_BOT_DEVICE_ID } from "../config.js";
 
 const MODES = new Set([
@@ -59,6 +60,12 @@ export function performancesRouter(prisma: PrismaClient): Router {
     }
     if (!song) {
       res.status(404).json({ error: "Song not found" });
+      return;
+    }
+    if (!(await canPlaySong(prisma, playerId, song))) {
+      res
+        .status(403)
+        .json({ error: "Song is locked — purchase the pack to play it" });
       return;
     }
 
