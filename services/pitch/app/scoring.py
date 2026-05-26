@@ -29,6 +29,13 @@ class PitchResult(TypedDict):
     meanCentsError: Optional[float]
 
 
+class TimingResult(TypedDict):
+    scoreTiming: Optional[float]      # 0–100, or None if there are no reference onsets
+    matchedOnsets: int
+    referenceOnsets: int
+    meanOnsetErrorMs: Optional[float]
+
+
 def midi_to_hz(midi: float) -> float:
     return 440.0 * (2.0 ** ((midi - 69.0) / 12.0))
 
@@ -43,6 +50,11 @@ def detect_f0(
     f0, voiced_flag, _ = librosa.pyin(y, sr=sr, fmin=fmin, fmax=fmax)
     times = librosa.times_like(f0, sr=sr)
     return f0, voiced_flag, times
+
+
+def detect_onsets(y: np.ndarray, sr: int) -> np.ndarray:
+    """Onset times (seconds) where the singer starts notes/syllables."""
+    return librosa.onset.onset_detect(y=y, sr=sr, units="time")
 
 
 def _reference_midi_at(reference: Sequence[ReferenceNote], t: float) -> Optional[float]:
@@ -98,4 +110,49 @@ def score_pitch(
         totalFrames=total,
         voicedRatio=round(voiced / total, 3) if total else 0.0,
         meanCentsError=mean_cents,
+    )
+
+
+def score_timing(
+    onset_times: np.ndarray,
+    reference: Sequence[ReferenceNote],
+    tolerance_sec: float = 0.15,
+) -> TimingResult:
+    """Score how well sung onsets line up with the reference note starts.
+
+    Each reference note start is matched to the nearest detected onset; it's a
+    hit when that gap is within `tolerance_sec`. The score is the fraction of
+    reference onsets hit.
+    """
+    ref_onsets: list[float] = []
+    for note in reference:
+        try:
+            ref_onsets.append(float(note["start"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    ref_onsets = sorted(set(ref_onsets))
+
+    if not ref_onsets:
+        return TimingResult(
+            scoreTiming=None, matchedOnsets=0, referenceOnsets=0, meanOnsetErrorMs=None
+        )
+
+    onsets = [float(o) for o in onset_times]
+    matched = 0
+    errors: list[float] = []
+    for r in ref_onsets:
+        if not onsets:
+            break
+        delta = min(abs(o - r) for o in onsets)
+        errors.append(delta)
+        if delta <= tolerance_sec:
+            matched += 1
+
+    score = round(100.0 * matched / len(ref_onsets), 1)
+    mean_err = round(float(np.mean(errors)) * 1000.0, 1) if errors else None
+    return TimingResult(
+        scoreTiming=score,
+        matchedOnsets=matched,
+        referenceOnsets=len(ref_onsets),
+        meanOnsetErrorMs=mean_err,
     )

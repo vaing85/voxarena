@@ -86,6 +86,10 @@ describe("POST /performances/audio", () => {
       totalFrames: 120,
       voicedRatio: 0.92,
       meanCentsError: 18.2,
+      scoreTiming: 70.6,
+      matchedOnsets: 3,
+      referenceOnsets: 4,
+      meanOnsetErrorMs: 42.0,
     });
 
     const created: any[] = [];
@@ -116,9 +120,12 @@ describe("POST /performances/audio", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.pitch.scorePitch).toBe(82.4);
-    // Real pitch is rounded into the stored layer; total is recomputed.
+    expect(res.body.timing.scoreTiming).toBe(70.6);
+    // Real pitch and timing are rounded into the stored layers; total is recomputed.
     expect(res.body.performance.scorePitch).toBe(82);
+    expect(res.body.performance.scoreTiming).toBe(71);
     expect(created[0].scorePitch).toBe(82);
+    expect(created[0].scoreTiming).toBe(71);
     expect(typeof res.body.performance.scoreTotal).toBe("number");
     expect(analyzePitch).toHaveBeenCalledOnce();
   });

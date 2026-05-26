@@ -203,6 +203,13 @@ paths:
                       meanCentsError: { type: number, nullable: true }
                       voicedRatio: { type: number }
                       evaluatedFrames: { type: integer }
+                  timing:
+                    type: object
+                    properties:
+                      scoreTiming: { type: number, nullable: true }
+                      meanOnsetErrorMs: { type: number, nullable: true }
+                      matchedOnsets: { type: integer }
+                      referenceOnsets: { type: integer }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }

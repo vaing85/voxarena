@@ -7,6 +7,10 @@ export type PitchAnalysis = {
   totalFrames: number;
   voicedRatio: number;
   meanCentsError: number | null;
+  scoreTiming: number | null;
+  matchedOnsets: number;
+  referenceOnsets: number;
+  meanOnsetErrorMs: number | null;
   sampleRate?: number;
   durationSec?: number;
 };

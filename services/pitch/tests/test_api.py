@@ -26,6 +26,9 @@ def test_analyze_scores_a_matching_tone_high():
     body = res.json()
     assert body["sampleRate"] == sr
     assert body["scorePitch"] > 90.0
+    # Timing layer is computed too (1 reference onset here).
+    assert "scoreTiming" in body
+    assert body["referenceOnsets"] == 1
 
 
 def test_analyze_rejects_non_json_reference():

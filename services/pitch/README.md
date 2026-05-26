@@ -37,12 +37,23 @@ Response:
   "voicedFrames": 124,
   "totalFrames": 130,
   "voicedRatio": 0.954,
-  "meanCentsError": 7.8      // mean absolute cents off target, or null
+  "meanCentsError": 7.8,     // mean absolute cents off target, or null
+  "scoreTiming": 100.0,      // 0–100, or null if no reference onsets
+  "matchedOnsets": 4,
+  "referenceOnsets": 4,
+  "meanOnsetErrorMs": 35.1   // mean onset error vs reference, or null
 }
 ```
 
-A frame is a **hit** when the sung pitch is within `cents_tolerance` (default 100
-cents = one semitone) of the target note. `scorePitch` is the hit fraction.
+**Pitch (Layer A):** a frame is a *hit* when the sung pitch is within
+`cents_tolerance` (default 100 cents = one semitone) of the target note;
+`scorePitch` is the hit fraction.
+
+**Timing (Layer B):** each reference note start is matched to the nearest
+detected onset (`librosa.onset.onset_detect`); it's a *hit* within
+`tolerance_sec` (default 0.15s). `scoreTiming` is the fraction of reference
+onsets hit. Note that onset detection needs preceding silence, so reference
+melodies should begin after a short lead-in (not at t=0).
 
 ## How it fits
 
