@@ -46,7 +46,10 @@ Response:
   "evaluatedNotes": 4,
   "meanStdCents": 27.7,      // mean within-note pitch spread, or null
   "scoreDynamics": 88.7,     // 0–100, or null if no note had enough frames
-  "meanCv": 0.113            // mean within-note RMS coefficient of variation, or null
+  "meanCv": 0.113,           // mean within-note RMS coefficient of variation, or null
+  "scoreTransitions": 100.0, // 0–100, or null if the melody has no pitch changes
+  "evaluatedTransitions": 3,
+  "meanSettleRatio": 1.0     // mean fraction of post-onset frames on the new target
 }
 ```
 
@@ -70,6 +73,12 @@ arbitrary mic gain), this measures the RMS coefficient of variation (std/mean)
 *within* each note, with edges trimmed so natural attack/release isn't penalised.
 A well-sustained note is even; fade-outs and choppy/tremolo notes vary more.
 `scoreDynamics` falls from 100 as the CV grows toward `max_cv` (default 0.5).
+
+**Transitions (Layer E):** for each consecutive pair where the pitch changes,
+look at a short window (default 0.15s) at the start of the new note and measure
+the fraction of frames already within `tolerance_cents` of the new target. A
+snappy, clean change settles fast; a slow portamento or messy slide lingers
+off-target. `scoreTransitions` is the mean settle fraction.
 
 ## How it fits
 

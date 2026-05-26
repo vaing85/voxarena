@@ -16,6 +16,9 @@ export type PitchAnalysis = {
   meanStdCents: number | null;
   scoreDynamics: number | null;
   meanCv: number | null;
+  scoreTransitions: number | null;
+  evaluatedTransitions: number;
+  meanSettleRatio: number | null;
   sampleRate?: number;
   durationSec?: number;
 };

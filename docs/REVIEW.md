@@ -40,7 +40,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 
 | Area | Notes |
 |------|--------|
-| **Scoring engine (real)** | Wired end-to-end: web client records the **mic** (Web Audio → in-browser WAV) or uploads a WAV → `POST /performances/audio` → Node calls the PYIN service → real **Layer A (pitch)** + **Layer B (timing/onset alignment)** + **Layer C (stability/within-note pitch spread)** + **Layer D (dynamics/volume control)** stored (`Song.referenceNotes` holds the reference melody). Still TODO: real Layer E (transitions stay heuristic). |
+| **Scoring engine (real)** | Complete — **all five layers real**, end-to-end: web client records the **mic** (Web Audio → in-browser WAV) or uploads a WAV → `POST /performances/audio` → Node calls the PYIN service → **A pitch** + **B timing** + **C stability** + **D dynamics** + **E transitions** stored (`Song.referenceNotes` holds the reference melody). A stub fills any layer the audio can't exercise (e.g. a single-note song has no transitions). |
 | **Socket.IO / WebRTC** | Live session sync, mic streaming ([MVP](MVP.md) Phase 3). |
 | **Anti-cheat** | Fingerprinting, review queue. |
 | **Event emitter** | Event schemas defined in `shared/events`; emitting them to a queue is still TODO. |
@@ -53,7 +53,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 | Phase | Status |
 |-------|--------|
 | **Phase 1** | Done (API + leaderboard + stub scoring). |
-| **Phase 2** | Done in this repo: bots, Redis queue, ELO, 3-layer weights + bot/stub pipelines (still heuristic, not ML pitch). |
+| **Phase 2** | Done: bots, Redis queue, ELO, plus a **real 5-layer audio scoring engine** (PYIN pitch service) wired end-to-end with mic capture. |
 | **Phase 3** | Not started — live PvP, anti-cheat, tournaments. |
 
-Next: **real audio scoring**, **client**, then **Phase 3** per [MVP.md](MVP.md).
+Next: **Phase 3** (live PvP, anti-cheat) per [MVP.md](MVP.md).

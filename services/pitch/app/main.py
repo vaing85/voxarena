@@ -20,6 +20,7 @@ from .scoring import (
     score_pitch,
     score_stability,
     score_timing,
+    score_transitions,
 )
 
 app = FastAPI(title="VoxArena Pitch Service", version="0.1.0")
@@ -59,6 +60,7 @@ async def analyze(audio: UploadFile = File(...), reference: str = Form("[]")):
     timing = score_timing(detect_onsets(mono, int(sr)), notes)
     stability = score_stability(f0, times, notes)
     dynamics = score_dynamics(mono, int(sr), notes)
+    transitions = score_transitions(f0, times, notes)
     return {
         "sampleRate": int(sr),
         "durationSec": round(len(y) / float(sr), 3),
@@ -66,4 +68,5 @@ async def analyze(audio: UploadFile = File(...), reference: str = Form("[]")):
         **timing,
         **stability,
         **dynamics,
+        **transitions,
     }

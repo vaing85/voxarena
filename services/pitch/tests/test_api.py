@@ -32,6 +32,9 @@ def test_analyze_scores_a_matching_tone_high():
     assert body["scoreStability"] is not None
     assert body["scoreDynamics"] is not None
     assert body["evaluatedNotes"] == 1
+    # Single note -> no pitch change -> transitions not scored.
+    assert "scoreTransitions" in body
+    assert body["evaluatedTransitions"] == 0
 
 
 def test_analyze_rejects_non_json_reference():
