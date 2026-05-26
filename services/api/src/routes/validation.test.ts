@@ -12,6 +12,8 @@ const OTHER_UUID = "11111111-2222-4333-8444-555555555555";
 
 // Any DB access during a pure-validation path is a bug: the request should be
 // rejected before it ever reaches Prisma. This proxy turns that into a failure.
+// Auth runs in dev-bypass mode (no Supabase), which never touches the DB, so
+// reaching Prisma here always means validation failed to short-circuit.
 const prisma = new Proxy(
   {},
   {
@@ -39,10 +41,19 @@ let app: express.Express;
 beforeAll(() => {
   // Matchmaking short-circuits to 503 when Redis is not configured.
   delete process.env.REDIS_URL;
+  // No Supabase configured + dev bypass => auth resolves the player from the
+  // x-player-id header without a DB call, so validation can be tested in isolation.
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  process.env.AUTH_DEV_BYPASS = "true";
+  delete process.env.NODE_ENV;
   app = buildApp();
 });
 
-describe("GET /songs/:id", () => {
+// Helper for protected routes: passes a valid dev identity matching VALID_UUID.
+const authed = (req: request.Test) => req.set("x-player-id", VALID_UUID);
+
+describe("GET /songs/:id (public)", () => {
   it("rejects a non-UUID id", async () => {
     const res = await request(app).get("/songs/not-a-uuid");
     expect(res.status).toBe(400);
@@ -50,7 +61,7 @@ describe("GET /songs/:id", () => {
   });
 });
 
-describe("GET /leaderboard", () => {
+describe("GET /leaderboard (public)", () => {
   it("requires a songId query param", async () => {
     const res = await request(app).get("/leaderboard");
     expect(res.status).toBe(400);
@@ -75,28 +86,32 @@ describe("GET /leaderboard", () => {
 
 describe("POST /performances", () => {
   it("rejects a missing body", async () => {
-    const res = await request(app).post("/performances").send({});
+    const res = await authed(request(app).post("/performances")).send({});
     expect(res.status).toBe(400);
   });
 
   it("rejects a non-UUID playerId/songId", async () => {
-    const res = await request(app)
-      .post("/performances")
-      .send({ playerId: "x", songId: "y", mode: "solo_practice" });
+    const res = await authed(request(app).post("/performances")).send({
+      playerId: "x",
+      songId: "y",
+      mode: "solo_practice",
+    });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/uuid/i);
   });
 
   it("rejects an invalid mode", async () => {
-    const res = await request(app)
-      .post("/performances")
-      .send({ playerId: VALID_UUID, songId: OTHER_UUID, mode: "karaoke" });
+    const res = await authed(request(app).post("/performances")).send({
+      playerId: VALID_UUID,
+      songId: OTHER_UUID,
+      mode: "karaoke",
+    });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/mode/i);
   });
 
   it("rejects a non-UUID matchId", async () => {
-    const res = await request(app).post("/performances").send({
+    const res = await authed(request(app).post("/performances")).send({
       playerId: VALID_UUID,
       songId: OTHER_UUID,
       mode: "ranked_pvp",
@@ -107,7 +122,7 @@ describe("POST /performances", () => {
   });
 });
 
-describe("GET /bot/presets", () => {
+describe("GET /bot/presets (public)", () => {
   it("returns the preset list without touching the DB", async () => {
     const res = await request(app).get("/bot/presets");
     expect(res.status).toBe(200);
@@ -119,20 +134,22 @@ describe("GET /bot/presets", () => {
 
 describe("POST /bot/solo-vs-bot", () => {
   it("rejects a missing body", async () => {
-    const res = await request(app).post("/bot/solo-vs-bot").send({});
+    const res = await authed(request(app).post("/bot/solo-vs-bot")).send({});
     expect(res.status).toBe(400);
   });
 
   it("rejects a non-UUID id", async () => {
-    const res = await request(app)
-      .post("/bot/solo-vs-bot")
-      .send({ playerId: "x", songId: "y", botPreset: "pro" });
+    const res = await authed(request(app).post("/bot/solo-vs-bot")).send({
+      playerId: "x",
+      songId: "y",
+      botPreset: "pro",
+    });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/uuid/i);
   });
 
   it("rejects an unknown bot preset", async () => {
-    const res = await request(app).post("/bot/solo-vs-bot").send({
+    const res = await authed(request(app).post("/bot/solo-vs-bot")).send({
       playerId: VALID_UUID,
       songId: OTHER_UUID,
       botPreset: "diva",
@@ -144,23 +161,23 @@ describe("POST /bot/solo-vs-bot", () => {
 
 describe("matchmaking without Redis", () => {
   it("POST /matchmaking/ranked/join returns 503", async () => {
-    const res = await request(app)
-      .post("/matchmaking/ranked/join")
-      .send({ playerId: VALID_UUID, songId: OTHER_UUID });
+    const res = await authed(
+      request(app).post("/matchmaking/ranked/join")
+    ).send({ playerId: VALID_UUID, songId: OTHER_UUID });
     expect(res.status).toBe(503);
     expect(res.body.error).toMatch(/redis/i);
   });
 
   it("POST /matchmaking/ranked/leave returns 503", async () => {
-    const res = await request(app)
-      .post("/matchmaking/ranked/leave")
-      .send({ playerId: VALID_UUID });
+    const res = await authed(
+      request(app).post("/matchmaking/ranked/leave")
+    ).send({ playerId: VALID_UUID });
     expect(res.status).toBe(503);
   });
 
   it("GET /matchmaking/ranked/pending/:playerId returns 503", async () => {
-    const res = await request(app).get(
-      `/matchmaking/ranked/pending/${VALID_UUID}`
+    const res = await authed(
+      request(app).get(`/matchmaking/ranked/pending/${VALID_UUID}`)
     );
     expect(res.status).toBe(503);
   });

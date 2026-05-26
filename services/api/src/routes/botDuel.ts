@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { isUuidString } from "../lib/ids.js";
+import { requireAuth } from "../lib/auth.js";
 import { HOUSE_BOT_DEVICE_ID } from "../config.js";
 import { generateBotScores, listBotPresets, type BotPreset } from "../lib/bots.js";
 import { computeStubScores } from "../lib/stubScore.js";
@@ -15,7 +16,7 @@ export function botDuelRouter(prisma: PrismaClient): Router {
   /**
    * Solo vs bot: stores human + bot performances, completes Match, updates human stats (not bot MMR).
    */
-  r.post("/solo-vs-bot", async (req, res) => {
+  r.post("/solo-vs-bot", requireAuth(prisma), async (req, res) => {
     const { playerId, songId, botPreset } = req.body ?? {};
     if (
       typeof playerId !== "string" ||
@@ -35,6 +36,12 @@ export function botDuelRouter(prisma: PrismaClient): Router {
       res.status(400).json({
         error: `botPreset must be one of: ${listBotPresets().join(", ")}`,
       });
+      return;
+    }
+    if (req.player && req.player.id !== playerId) {
+      res
+        .status(403)
+        .json({ error: "playerId does not match the authenticated user" });
       return;
     }
 

@@ -39,19 +39,29 @@ The seed prints **`SONG_ID`** and **`PLAYER_ID`** (UUIDs) — use them for `POST
 - `GET http://localhost:3000/health/supabase` — `configured` or `skipped`
 - `GET http://localhost:3000/health/resend` — `configured` or `skipped`
 - `GET http://localhost:3000/songs` — list includes seeded demo song
-- `POST http://localhost:3000/performances` with JSON body:
+- `POST http://localhost:3000/performances` with JSON body **and an identity header** (see Auth below):
 
-```json
-{
-  "playerId": "<PLAYER_ID from seed>",
-  "songId": "<SONG_ID from seed>",
-  "mode": "solo_practice"
-}
+```bash
+curl -X POST http://localhost:3000/performances \
+  -H "Content-Type: application/json" \
+  -H "x-player-id: <PLAYER_ID from seed>" \
+  -d '{"playerId":"<PLAYER_ID from seed>","songId":"<SONG_ID from seed>","mode":"solo_practice"}'
 ```
 
 (Omit score fields to use **stub** scores.)
 
-- `GET http://localhost:3000/leaderboard?songId=<SONG_ID>` — ranked list
+- `GET http://localhost:3000/leaderboard?songId=<SONG_ID>` — ranked list (public, no auth)
+
+---
+
+## Auth
+
+Write endpoints (`POST /players`, `/performances`, `/bot/solo-vs-bot`, `/matchmaking/*`) require an authenticated player. Reads (`/songs`, `/leaderboard`, `/bot/presets`, `/health/*`) are public.
+
+- **Production / Supabase configured** (`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`): send a Supabase access token as `Authorization: Bearer <token>`. The API verifies it and links/creates the matching `Player` (by `supabaseUserId`, or an existing unclaimed row with the same email).
+- **Local dev without Supabase:** set `AUTH_DEV_BYPASS=true` in `.env` and pass `x-player-id: <PLAYER_ID>` on write requests. Token verification is skipped. This is **never** honored when `NODE_ENV=production`.
+
+The `playerId` in a request body must match the authenticated identity, or the API returns `403`.
 
 ---
 
@@ -61,16 +71,16 @@ The seed prints **`SONG_ID`** and **`PLAYER_ID`** (UUIDs) — use them for `POST
 |--------|------|--------|
 | GET | `/songs` | List songs |
 | GET | `/songs/:id` | One song (UUID) |
-| POST | `/players` | Body: `{ "name": "Optional" }` — create test player |
-| POST | `/performances` | `playerId`, `songId`, `mode`; optional **`matchId`** for `ranked_pvp`. Response `{ performance, ranked }`. |
+| POST | `/players` | 🔒 Register/link current player. Body: `{ "name": "Optional" }` |
+| POST | `/performances` | 🔒 `playerId`, `songId`, `mode`; optional **`matchId`** for `ranked_pvp`. Response `{ performance, ranked }`. |
 | GET | `/leaderboard` | Query: `songId` (required), `limit` (optional). Excludes house bot. |
-| POST | `/matchmaking/ranked/join` | `{ playerId, songId }` — needs **Redis** |
-| POST | `/matchmaking/ranked/leave` | `{ playerId }` |
-| GET | `/matchmaking/ranked/pending/:playerId` | Current `matchId` if matched |
+| POST | `/matchmaking/ranked/join` | 🔒 `{ playerId, songId }` — needs **Redis** |
+| POST | `/matchmaking/ranked/leave` | 🔒 `{ playerId }` |
+| GET | `/matchmaking/ranked/pending/:playerId` | 🔒 Current `matchId` if matched |
 | GET | `/bot/presets` | Bot personality keys |
-| POST | `/bot/solo-vs-bot` | `{ playerId, songId, botPreset }` — optional full scores or stub |
+| POST | `/bot/solo-vs-bot` | 🔒 `{ playerId, songId, botPreset }` — optional full scores or stub |
 
-Modes: `solo_practice`, `solo_vs_bot`, `ranked_pvp`, `tournament`.
+🔒 = requires auth (Bearer token, or `x-player-id` header in dev bypass). Modes: `solo_practice`, `solo_vs_bot`, `ranked_pvp`, `tournament`.
 
 ---
 

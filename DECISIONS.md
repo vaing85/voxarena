@@ -19,6 +19,7 @@ Record important product and technical decisions so the team (and future-you) do
 | **Host API on Railway** | 2026-04 | Node service from `services/api`; env vars in Railway dashboard. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). |
 | **Database: Supabase (PostgreSQL)** | 2026-04 | Prisma `DATABASE_URL` points at Supabase Postgres; optional `supabaseUserId` on `Player` for Auth linkage. Local dev: Docker Postgres or Supabase project. |
 | **Email: Resend** | 2026-04 | `RESEND_API_KEY` + `RESEND_FROM`; `sendTransactionalEmail()` in `services/api/src/lib/email.ts`. |
+| **Auth: Supabase access tokens** | 2026-05 | API verifies `Authorization: Bearer <token>` via Supabase and links `Player.supabaseUserId`. Write endpoints gated by `requireAuth` (`services/api/src/lib/auth.ts`); reads public. Local dev: `AUTH_DEV_BYPASS=true` + `x-player-id` header (never in production). |
 | **Phase 1: single API service** | — | Auth, matchmaking, game session split later or as modules. |
 
 ---
