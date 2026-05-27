@@ -32,6 +32,7 @@ model Player {
   entitlements Entitlement[]
   cosmetics    CosmeticOwnership[]
   cheatFlags   CheatFlag[]
+  tournamentEntries TournamentEntrant[]
 }
 
 model Song {
@@ -53,6 +54,7 @@ model Song {
 
   performances Performance[]
   matches      Match[]
+  tournaments  Tournament[]
 
   @@index([packId])
 }
@@ -151,6 +153,60 @@ model CheatFlag {
 
   @@index([status])
   @@index([playerId])
+}
+
+model Tournament {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  name   String
+  songId String
+  /// registration | active | completed
+  status      String    @default("registration")
+  startedAt   DateTime?
+  completedAt DateTime?
+  winnerId    String?
+
+  song     Song                @relation(fields: [songId], references: [id], onDelete: Cascade)
+  entrants TournamentEntrant[]
+  matches  TournamentMatch[]
+}
+
+model TournamentEntrant {
+  id           String  @id @default(uuid())
+  tournamentId String
+  playerId     String
+  /// Assigned at start: 1 = top seed (highest MMR).
+  seed       Int?
+  eliminated Boolean @default(false)
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player     Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, playerId])
+  @@index([tournamentId])
+}
+
+model TournamentMatch {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  tournamentId String
+
+  round Int
+  slot  Int
+
+  /// Player ids stored flat (null player2 = a bye).
+  player1Id    String?
+  player2Id    String?
+  player1Score Float?
+  player2Score Float?
+  winnerId     String?
+  /// pending | completed
+  status String @default("pending")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId, round])
 }
 
 model Performance {

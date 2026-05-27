@@ -21,6 +21,7 @@ tags:
   - name: Bot
   - name: Store
   - name: Cosmetics
+  - name: Tournaments
   - name: Admin
 
 paths:
@@ -689,6 +690,112 @@ paths:
         "401": { description: Invalid admin token }
         "404": { $ref: "#/components/responses/NotFound" }
         "503": { description: Admin not configured (ADMIN_TOKEN) }
+
+  /tournaments:
+    get:
+      tags: [Tournaments]
+      summary: List tournaments
+      security: []
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [registration, active, completed] } }
+      responses:
+        "200":
+          description: Tournaments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tournaments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        songId: { type: string, format: uuid }
+                        status: { type: string }
+                        entrantCount: { type: integer }
+                        winnerId: { type: string, format: uuid, nullable: true }
+                        createdAt: { type: string, format: date-time }
+    post:
+      tags: [Tournaments]
+      summary: Create a tournament (opens registration)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, songId]
+              properties:
+                name: { type: string, maxLength: 80 }
+                songId: { type: string, format: uuid }
+      responses:
+        "201": { description: Created tournament }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /tournaments/{id}:
+    get:
+      tags: [Tournaments]
+      summary: Full bracket view (entrants + matches)
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Tournament with entrants and matches }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /tournaments/{id}/join:
+    post:
+      tags: [Tournaments]
+      summary: Register for an open tournament
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "201": { description: Joined }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Registration closed or already registered }
+
+  /tournaments/{id}/start:
+    post:
+      tags: [Tournaments]
+      summary: Seed (by MMR) and start the bracket
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Started }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Already started or fewer than 2 entrants }
+
+  /tournaments/{id}/report:
+    post:
+      tags: [Tournaments]
+      summary: Report your current-match score from one of your performances
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [playerId, performanceId]
+              properties:
+                playerId: { type: string, format: uuid }
+                performanceId: { type: string, format: uuid }
+      responses:
+        "200": { description: Reported (match decided + bracket advanced when both scores are in) }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Tournament not active, or no pending match }
 
 components:
   securitySchemes:
