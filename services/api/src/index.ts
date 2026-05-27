@@ -19,6 +19,8 @@ import { matchmakingRouter } from "./routes/matchmaking.js";
 import { botDuelRouter } from "./routes/botDuel.js";
 import { storeRouter, storeWebhookHandler } from "./routes/store.js";
 import { cosmeticsRouter } from "./routes/cosmetics.js";
+import { adminRouter } from "./routes/admin.js";
+import { startEventConsumer } from "./lib/eventConsumer.js";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -104,6 +106,7 @@ app.use("/matchmaking", matchmakingRouter(prisma));
 app.use("/bot", botDuelRouter(prisma));
 app.use("/store", storeRouter(prisma));
 app.use("/cosmetics", cosmeticsRouter(prisma));
+app.use("/admin", adminRouter(prisma));
 
 // Optional static dev client. Served only when the directory is present (local
 // dev / full-repo deploy); absent when the API is deployed from services/api alone.
@@ -127,6 +130,9 @@ const httpServer = createServer(app);
 const io = new SocketServer(httpServer, { cors: { origin: "*" } });
 setupLiveMatch(io, prisma);
 
+// Anti-cheat consumer reads the events stream (no-op unless ANTICHEAT_CONSUMER + REDIS_URL).
+startEventConsumer(prisma);
+
 async function main() {
   httpServer.listen(PORT, () => {
     console.log(`VoxArena API listening on http://localhost:${PORT}`);
@@ -143,6 +149,7 @@ async function main() {
     console.log("  GET  /store/packs  POST /store/checkout  POST /store/webhook");
     console.log("  GET  /cosmetics  POST /cosmetics/checkout /equip /unequip");
     console.log("  GET  /players/:id  /players/:id/performances  /players/:id/matches");
+    console.log("  GET  /admin/flags  POST /admin/flags/:id/resolve (x-admin-token)");
     console.log("  WS   live PvP (Socket.IO): match:join / match:progress / match:result");
     if (clientAvailable) {
       console.log(`  Web dev client at http://localhost:${PORT}/`);

@@ -21,6 +21,7 @@ tags:
   - name: Bot
   - name: Store
   - name: Cosmetics
+  - name: Admin
 
 paths:
   /health:
@@ -631,6 +632,64 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /admin/flags:
+    get:
+      tags: [Admin]
+      summary: Anti-cheat review queue
+      description: Lists cheat flags. Requires the x-admin-token header.
+      security:
+        - adminToken: []
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [open, reviewed, dismissed, all], default: open } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        "200":
+          description: Flags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flags:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        playerId: { type: string, format: uuid }
+                        performanceId: { type: string, format: uuid, nullable: true }
+                        reason: { type: string, enum: [score_mismatch, suspicious_perfect, high_velocity] }
+                        severity: { type: string, enum: [low, medium, high] }
+                        status: { type: string, enum: [open, reviewed, dismissed] }
+                        details: { type: object, nullable: true }
+                        createdAt: { type: string, format: date-time }
+        "401": { description: Invalid admin token }
+        "503": { description: Admin not configured (ADMIN_TOKEN) }
+
+  /admin/flags/{id}/resolve:
+    post:
+      tags: [Admin]
+      summary: Resolve a cheat flag (reviewed or dismissed)
+      security:
+        - adminToken: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [reviewed, dismissed] }
+      responses:
+        "200": { description: Updated flag }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { description: Invalid admin token }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { description: Admin not configured (ADMIN_TOKEN) }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -642,6 +701,11 @@ components:
       in: header
       name: x-player-id
       description: Dev-bypass identity (local only, never in production)
+    adminToken:
+      type: apiKey
+      in: header
+      name: x-admin-token
+      description: Static admin token (ADMIN_TOKEN) for the moderation endpoints
 
   responses:
     BadRequest:

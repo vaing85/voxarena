@@ -31,6 +31,7 @@ model Player {
   matchesAs2   Match[]       @relation("Player2Matches")
   entitlements Entitlement[]
   cosmetics    CosmeticOwnership[]
+  cheatFlags   CheatFlag[]
 }
 
 model Song {
@@ -129,6 +130,26 @@ model CosmeticOwnership {
   item   CosmeticItem @relation(fields: [cosmeticItemId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, cosmeticItemId])
+  @@index([playerId])
+}
+
+model CheatFlag {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  playerId      String
+  performanceId String?
+  /// score_mismatch | suspicious_perfect | high_velocity
+  reason   String
+  severity String // low | medium | high
+  details  Json?
+  /// open | reviewed | dismissed
+  status     String    @default("open")
+  reviewedAt DateTime?
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([status])
   @@index([playerId])
 }
 
