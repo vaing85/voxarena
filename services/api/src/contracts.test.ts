@@ -39,6 +39,8 @@ describe("OpenAPI contract (shared/contracts/openapi.yaml)", () => {
       "/cosmetics/checkout",
       "/cosmetics/equip",
       "/cosmetics/unequip",
+      "/admin/flags",
+      "/admin/flags/{id}/resolve",
     ];
     for (const p of expected) {
       expect(spec.paths, `missing path ${p}`).toHaveProperty([p]);

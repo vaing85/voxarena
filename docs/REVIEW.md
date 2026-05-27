@@ -44,8 +44,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 | **Live PvP (realtime)** | Socket.IO coordination shipped: rooms, presence, synced countdown/start, opponent-progress relay, authoritative `match:result` push on ranked finalize, and **reconnect/resume** (a dropped player doesn't forfeit; on re-join the server replays a `match:state` snapshot — resumes the in-progress countdown via `Match.startedAt`, or returns the result if it finished). Still TODO: client UI (incl. on-device match persistence + idempotent submit retry), mic streaming/WebRTC. |
 | **Read endpoints** | Done: `GET /players/:id` (profile + stats), `/players/:id/performances`, `/players/:id/matches`. |
 | **Cosmetics monetization** | Done: `CosmeticItem` + ownership/equip (one per category), `/cosmetics` (+checkout/equip/unequip), Stripe webhook grants both packs & cosmetics, `cosmetic.granted` event. Season pass deferred. |
-| **Anti-cheat** | Fingerprinting, review queue. |
-| **Event consumer** | API now emits `performance.recorded` / `match.completed` / `entitlement.granted` to the Redis Stream `voxarena:events`. A consumer (analytics / anti-cheat ingestion) is still TODO. |
+| **Anti-cheat / event consumer** | Done: in-process consumer (env-gated `ANTICHEAT_CONSUMER` + Redis) reads `voxarena:events`, runs detectors (score-total mismatch, all-perfect, submission velocity) and queues `CheatFlag`s. Review via `GET /admin/flags` + `POST /admin/flags/:id/resolve` (x-admin-token). Flag-and-queue only (no auto-bans). Next: richer signals (audio fingerprinting), auto-actions if desired. |
 | **Game client** | Web app in `clients/app` (React + Vite PWA): solo record→score→leaderboard loop **and live PvP** (matchmaking → synced countdown → sing → opponent progress → result, with on-device match persistence + reconnect/resume). TODO: store checkout, Supabase login, PWA offline; native (Unity/Godot) still open. |
 
 ---
