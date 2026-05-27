@@ -1,5 +1,11 @@
 # VoxArena — Clients
 
+## `app/` — web app (shipping client)
+
+React + TypeScript + Vite, PWA-ready — the real cross-platform client. Solo
+loop today (register → pick song → record → real 5-layer score → leaderboard);
+live PvP UI next. See [app/README.md](app/README.md).
+
 ## `web/` — dev client (no build step)
 
 A single static `index.html` (vanilla JS) that drives the full API loop:
