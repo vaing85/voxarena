@@ -30,11 +30,22 @@ npm test            # vitest (pure modules: WAV encoder, API client)
 - `src/lib/api.ts` — typed REST client.
 - `src/lib/audio.ts` — mic capture + in-browser WAV encoding (the pitch service reads WAV).
 - `src/lib/session.ts` — identity + active-match persistence (for reload/reconnect resume).
+- `src/lib/socket.ts` — Socket.IO connection (handshake auth, reconnect, polling fallback).
+- `src/lib/matchMachine.ts` — pure match state machine (unit-tested), driven by socket/REST events.
 - `src/App.tsx` — solo loop: register → pick song → record → real 5-layer score → leaderboard.
+- `src/LivePvp.tsx` — live ranked: matchmaking → synced countdown → sing → opponent progress → result.
+
+## Live PvP flow
+
+Find match (`/matchmaking/ranked/join`, polling `pending` while queued) → connect
+the socket and `match:join` → on both present, a synced `match:start` countdown →
+sing and submit via `/performances/audio` (mode `ranked_pvp` + `matchId`) →
+authoritative `match:result` pushed to the room. The active `matchId` is kept in
+`localStorage`, so a reload/disconnect re-joins and the server replays
+`match:state` to resume (or show the result). Needs `REDIS_URL` on the API for
+matchmaking.
 
 ## Status
 
-Slice 1: the solo record→score→leaderboard loop. **Next:** live PvP UI over the
-Socket.IO layer (`shared/contracts/README.md`) — join, synced countdown,
-opponent progress, result — with on-device match persistence + idempotent
-resubmit on reconnect.
+Done: solo scoring loop + live PvP UI. **Next:** Stripe checkout, Supabase login,
+PWA service worker (offline).

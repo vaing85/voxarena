@@ -10,6 +10,7 @@ import {
 } from "./lib/api";
 import { startRecorder, type Recorder } from "./lib/audio";
 import { getPlayerId, setPlayerId } from "./lib/session";
+import { LivePvp } from "./LivePvp";
 
 const MODES = ["solo_practice", "solo_vs_bot", "ranked_pvp", "tournament"];
 
@@ -180,6 +181,8 @@ export function App() {
             </table>
           )}
         </section>
+
+        {playerId && <LivePvp playerId={playerId} songId={songId} />}
 
         {packs.length > 0 && (
           <section className="panel">
