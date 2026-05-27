@@ -1,0 +1,10 @@
+{
+  "name": "VoxArena",
+  "short_name": "VoxArena",
+  "description": "Competitive singing — real-time, server-scored.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "icons": []
+}
