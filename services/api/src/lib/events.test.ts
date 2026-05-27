@@ -9,6 +9,7 @@ import {
   emitPerformanceRecorded,
   emitMatchCompleted,
   emitEntitlementGranted,
+  emitCosmeticGranted,
 } from "./events.js";
 
 const SHARED = path.resolve(process.cwd(), "..", "..", "shared", "events");
@@ -89,6 +90,18 @@ describe("event emitter", () => {
     const env = lastEnvelope();
     assertMatchesSchema(env, "entitlement.granted");
     expect(env.source).toBe("purchase");
+  });
+
+  it("emits a schema-valid cosmetic.granted", async () => {
+    await emitCosmeticGranted({
+      playerId: "player-1",
+      cosmeticItemId: "cosmetic-1",
+      source: "purchase",
+      stripeSessionId: "cs_1",
+    });
+    const env = lastEnvelope();
+    assertMatchesSchema(env, "cosmetic.granted");
+    expect(env.cosmeticItemId).toBe("cosmetic-1");
   });
 
   it("never throws when Redis is unavailable", async () => {

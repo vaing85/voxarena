@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://voxarena.dev/events/cosmetic.granted.json",
+  "title": "cosmetic.granted",
+  "description": "Emitted when a player gains a cosmetic item (purchase or grant).",
+  "type": "object",
+  "required": ["event", "version", "occurredAt", "playerId", "cosmeticItemId", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "event": { "const": "cosmetic.granted" },
+    "version": { "type": "integer", "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "playerId": { "type": "string", "format": "uuid" },
+    "cosmeticItemId": { "type": "string", "format": "uuid" },
+    "source": { "type": "string", "enum": ["purchase", "grant"] },
+    "stripeSessionId": { "type": ["string", "null"] }
+  }
+}

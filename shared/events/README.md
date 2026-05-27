@@ -9,6 +9,7 @@ integer `version`, and an ISO `occurredAt` timestamp.
 | `performance.recorded.json` | A performance is stored (`POST /performances`, solo-vs-bot). |
 | `match.completed.json` | A match is finalized and MMR applied. |
 | `entitlement.granted.json` | A player gains a pack (purchase or grant). |
+| `cosmetic.granted.json` | A player gains a cosmetic item (purchase or grant). |
 
 **Emitter:** the API publishes these events from `services/api/src/lib/events.ts`.
 When `REDIS_URL` is set they're appended to the Redis Stream `voxarena:events`

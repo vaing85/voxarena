@@ -18,6 +18,7 @@ import { getSupabaseAdmin } from "./lib/supabase.js";
 import { matchmakingRouter } from "./routes/matchmaking.js";
 import { botDuelRouter } from "./routes/botDuel.js";
 import { storeRouter, storeWebhookHandler } from "./routes/store.js";
+import { cosmeticsRouter } from "./routes/cosmetics.js";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -102,6 +103,7 @@ app.use("/leaderboard", leaderboardRouter(prisma));
 app.use("/matchmaking", matchmakingRouter(prisma));
 app.use("/bot", botDuelRouter(prisma));
 app.use("/store", storeRouter(prisma));
+app.use("/cosmetics", cosmeticsRouter(prisma));
 
 // Optional static dev client. Served only when the directory is present (local
 // dev / full-repo deploy); absent when the API is deployed from services/api alone.
@@ -139,6 +141,8 @@ async function main() {
     console.log("  GET  /matchmaking/ranked/pending/:playerId");
     console.log("  GET  /bot/presets  POST /bot/solo-vs-bot");
     console.log("  GET  /store/packs  POST /store/checkout  POST /store/webhook");
+    console.log("  GET  /cosmetics  POST /cosmetics/checkout /equip /unequip");
+    console.log("  GET  /players/:id  /players/:id/performances  /players/:id/matches");
     console.log("  WS   live PvP (Socket.IO): match:join / match:progress / match:result");
     if (clientAvailable) {
       console.log(`  Web dev client at http://localhost:${PORT}/`);
