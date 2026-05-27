@@ -136,6 +136,10 @@ model Match {
   /// pending: waiting for performances — completed: MMR applied
   status String @default("pending")
 
+  /// When the live countdown first triggered (both players present). Lets a
+  /// reconnecting client resume an in-progress round instead of restarting it.
+  startedAt DateTime?
+
   player1 Player @relation("Player1Matches", fields: [player1Id], references: [id], onDelete: Cascade)
   player2 Player @relation("Player2Matches", fields: [player2Id], references: [id], onDelete: Cascade)
   song    Song   @relation(fields: [songId], references: [id], onDelete: Cascade)

@@ -11,12 +11,29 @@ const P2 = "22222222-2222-4222-8222-222222222222";
 const STRANGER = "99999999-9999-4999-8999-999999999999";
 const MATCH = "33333333-3333-4333-8333-333333333333";
 
+// Stateful fake: findUnique returns the live row, update mutates it, so
+// startedAt persists across (re)joins the way the real DB would.
+type MatchRow = {
+  id: string;
+  player1Id: string;
+  player2Id: string;
+  songId: string;
+  status: string;
+  startedAt: Date | null;
+  winnerId: string | null;
+  player1Score: number | null;
+  player2Score: number | null;
+};
+let matchRow: MatchRow;
+
 const fakePrisma = {
   match: {
     findUnique: async ({ where }: { where: { id: string } }) =>
-      where.id === MATCH
-        ? { id: MATCH, player1Id: P1, player2Id: P2, songId: "song-1", status: "pending" }
-        : null,
+      where.id === matchRow.id ? matchRow : null,
+    update: async ({ data }: { data: Partial<MatchRow> }) => {
+      Object.assign(matchRow, data);
+      return matchRow;
+    },
   },
 } as unknown as PrismaClient;
 
@@ -62,6 +79,18 @@ beforeEach(async () => {
   process.env.AUTH_DEV_BYPASS = "true";
   delete process.env.SUPABASE_URL;
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  matchRow = {
+    id: MATCH,
+    player1Id: P1,
+    player2Id: P2,
+    songId: "song-1",
+    status: "pending",
+    startedAt: null,
+    winnerId: null,
+    player1Score: null,
+    player2Score: null,
+  };
 
   httpServer = createServer();
   io = new SocketServer(httpServer);
@@ -112,6 +141,60 @@ describe("live match (Socket.IO)", () => {
     c1.emit("match:progress", { score: 42 });
     const payload = await got;
     expect(payload).toEqual({ playerId: P1, score: 42 });
+  });
+
+  it("sends a state snapshot on join", async () => {
+    const c1 = connect({ playerId: P1 });
+    await once(c1, "connect");
+    const state = once<{ status: string; players: string[]; startsAt: number | null }>(
+      c1,
+      "match:state"
+    );
+    c1.emit("match:join", { matchId: MATCH });
+    const snap = await state;
+    expect(snap.status).toBe("pending");
+    expect(snap.players).toContain(P1);
+    expect(snap.startsAt).toBeNull(); // not started until both present
+  });
+
+  it("resumes an in-progress round on reconnect without restarting it", async () => {
+    const { c1 } = await joinBoth(); // both present -> round started, startedAt persisted
+    c1.disconnect();
+
+    const rejoin = connect({ playerId: P1 });
+    await once(rejoin, "connect");
+    const state = once<{ status: string; startsAt: number | null }>(rejoin, "match:state");
+    // A restart would fire match:start again; assert it does NOT within a window.
+    let restarted = false;
+    rejoin.once("match:start", () => {
+      restarted = true;
+    });
+    rejoin.emit("match:join", { matchId: MATCH });
+
+    const snap = await state;
+    expect(snap.status).toBe("pending");
+    expect(typeof snap.startsAt).toBe("number"); // resumes the original countdown
+    await new Promise((r) => setTimeout(r, 150));
+    expect(restarted).toBe(false);
+  });
+
+  it("replays the result when a player reconnects after finalize", async () => {
+    // Simulate the match having finalized while the player was away.
+    matchRow.status = "completed";
+    matchRow.winnerId = P1;
+    matchRow.player1Score = 91;
+    matchRow.player2Score = 80;
+
+    const c = connect({ playerId: P1 });
+    await once(c, "connect");
+    const state = once<{ status: string; result: { winnerId: string } | null }>(
+      c,
+      "match:state"
+    );
+    c.emit("match:join", { matchId: MATCH });
+    const snap = await state;
+    expect(snap.status).toBe("completed");
+    expect(snap.result?.winnerId).toBe(P1);
   });
 
   it("pushes the authoritative result to the room on finalize", async () => {
