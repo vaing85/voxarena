@@ -57,15 +57,43 @@ export function setupLiveMatch(io: Server, prisma: PrismaClient): () => void {
       await socket.join(roomFor(matchId));
 
       const present = await presentPlayers(io, matchId);
+
+      // Snapshot for the joining client — lets a reconnecting player resume the
+      // session (resync the countdown, or see the result if it finished while
+      // they were away) instead of starting from scratch.
+      socket.emit("match:state", {
+        matchId,
+        status: match.status,
+        players: present,
+        startsAt: match.startedAt ? match.startedAt.getTime() + COUNTDOWN_MS : null,
+        result:
+          match.status === "completed"
+            ? {
+                winnerId: match.winnerId,
+                player1Id: match.player1Id,
+                player2Id: match.player2Id,
+                player1Score: match.player1Score,
+                player2Score: match.player2Score,
+              }
+            : null,
+      });
+
       io.to(roomFor(matchId)).emit("match:presence", { matchId, players: present });
 
       const bothPresent = [match.player1Id, match.player2Id].every((id) =>
         present.includes(id)
       );
-      if (bothPresent) {
+      // Only the FIRST time both are present starts the round; a later
+      // reconnect must not restart a round already in progress.
+      if (match.status === "pending" && bothPresent && !match.startedAt) {
+        const startedAt = new Date();
+        await prisma.match.update({
+          where: { id: matchId },
+          data: { startedAt },
+        });
         io.to(roomFor(matchId)).emit("match:start", {
           matchId,
-          startsAt: Date.now() + COUNTDOWN_MS,
+          startsAt: startedAt.getTime() + COUNTDOWN_MS,
         });
       }
     });
