@@ -27,7 +27,9 @@ npm run dev
 - **REDIS_URL**: e.g. `redis://localhost:6379` (omit to skip Redis; `/health/redis` reports `skipped`).
 - **Supabase / Resend**: optional for Phase 1; see [DEPLOYMENT.md](DEPLOYMENT.md).
 
-The seed prints **`SONG_ID`** and **`PLAYER_ID`** (UUIDs) — use them for `POST /performances` and `GET /leaderboard`.
+The seed prints **`SONG_ID`** and **`PLAYER_ID`** (UUIDs) — use them for `POST /performances` and `GET /leaderboard`. It also adds public-domain songs (Twinkle, Mary Had a Little Lamb, Ode to Joy) with real reference melodies.
+
+**Authoring reference melodies:** `npm run melody -- "R:q C4:q D4:q E4:h" 100` prints the `referenceNotes` JSON from compact notation (`NOTE:DUR`, `R` = rest, dur `w/h/q/e/s` + optional `.`). Start with a rest lead-in so the first onset is detectable.
 
 ---
 

@@ -12,6 +12,7 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
+    "melody": "tsx scripts/melodyToReference.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
