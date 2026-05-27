@@ -20,6 +20,7 @@ import { botDuelRouter } from "./routes/botDuel.js";
 import { storeRouter, storeWebhookHandler } from "./routes/store.js";
 import { cosmeticsRouter } from "./routes/cosmetics.js";
 import { adminRouter } from "./routes/admin.js";
+import { tournamentsRouter } from "./routes/tournaments.js";
 import { startEventConsumer } from "./lib/eventConsumer.js";
 
 const app = express();
@@ -107,6 +108,7 @@ app.use("/bot", botDuelRouter(prisma));
 app.use("/store", storeRouter(prisma));
 app.use("/cosmetics", cosmeticsRouter(prisma));
 app.use("/admin", adminRouter(prisma));
+app.use("/tournaments", tournamentsRouter(prisma));
 
 // Optional static dev client. Served only when the directory is present (local
 // dev / full-repo deploy); absent when the API is deployed from services/api alone.
@@ -150,6 +152,7 @@ async function main() {
     console.log("  GET  /cosmetics  POST /cosmetics/checkout /equip /unequip");
     console.log("  GET  /players/:id  /players/:id/performances  /players/:id/matches");
     console.log("  GET  /admin/flags  POST /admin/flags/:id/resolve (x-admin-token)");
+    console.log("  GET  /tournaments  POST /tournaments /:id/join /:id/start /:id/report");
     console.log("  WS   live PvP (Socket.IO): match:join / match:progress / match:result");
     if (clientAvailable) {
       console.log(`  Web dev client at http://localhost:${PORT}/`);

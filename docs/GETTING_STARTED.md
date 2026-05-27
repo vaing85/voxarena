@@ -91,6 +91,10 @@ The `playerId` in a request body must match the authenticated identity, or the A
 | POST | `/cosmetics/equip` · `/cosmetics/unequip` | 🔒 `{ cosmeticItemId }` — one equipped per category |
 | GET | `/admin/flags` | 🔑 Anti-cheat review queue (`x-admin-token`; `status`, `limit`) |
 | POST | `/admin/flags/:id/resolve` | 🔑 `{ status: reviewed \| dismissed }` |
+| GET | `/tournaments` · `/tournaments/:id` | List / bracket view (public) |
+| POST | `/tournaments` | 🔒 `{ name, songId }` — opens registration |
+| POST | `/tournaments/:id/join` · `/start` | 🔒 register / seed (by MMR) + start |
+| POST | `/tournaments/:id/report` | 🔒 `{ playerId, performanceId }` — decides your match + advances |
 
 🔒 = requires auth (Bearer token, or `x-player-id` header in dev bypass). Modes: `solo_practice`, `solo_vs_bot`, `ranked_pvp`, `tournament`. Locked songs (in a pack you don't own) return `403` when you try to play them.
 
