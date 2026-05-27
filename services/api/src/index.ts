@@ -6,7 +6,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { Server as SocketServer } from "socket.io";
-import { redisPing } from "./lib/redis.js";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { redisPing, getRedis } from "./lib/redis.js";
 import { setupLiveMatch } from "./realtime/liveMatch.js";
 import { songsRouter } from "./routes/songs.js";
 import { playersRouter } from "./routes/players.js";
@@ -22,13 +23,18 @@ import { cosmeticsRouter } from "./routes/cosmetics.js";
 import { adminRouter } from "./routes/admin.js";
 import { tournamentsRouter } from "./routes/tournaments.js";
 import { startEventConsumer } from "./lib/eventConsumer.js";
+import { rateLimit } from "./lib/rateLimit.js";
+import { requestLogger } from "./lib/requestLogger.js";
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT ?? 3000;
 
+app.use(requestLogger());
+
 // Stripe webhook needs the raw body for signature verification, so it must be
-// registered before the JSON body parser.
+// registered before the JSON body parser (and before rate limiting — Stripe
+// retries from its own IPs and must not be throttled).
 app.post(
   "/store/webhook",
   express.raw({ type: "application/json" }),
@@ -36,6 +42,20 @@ app.post(
 );
 
 app.use(express.json());
+
+// General per-IP limit (health is cheap and probed often, so skip it).
+const generalLimit = rateLimit({
+  windowMs: 60_000,
+  max: Number(process.env.RATE_LIMIT_MAX ?? 120),
+});
+app.use((req, res, next) =>
+  req.path.startsWith("/health") ? next() : generalLimit(req, res, next)
+);
+// Audio scoring is expensive — a tighter cap on top of the general one.
+app.use(
+  "/performances/audio",
+  rateLimit({ windowMs: 60_000, max: Number(process.env.RATE_LIMIT_AUDIO_MAX ?? 20) })
+);
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -130,6 +150,19 @@ app.use(errorHandler);
 
 const httpServer = createServer(app);
 const io = new SocketServer(httpServer, { cors: { origin: "*" } });
+
+// Cross-instance Socket.IO via Redis pub/sub so room broadcasts (e.g.
+// match:result) reach clients on every instance. No-op without REDIS_URL.
+const redisForIo = getRedis();
+if (redisForIo) {
+  try {
+    io.adapter(createAdapter(redisForIo, redisForIo.duplicate()));
+    console.log("Socket.IO: Redis adapter enabled");
+  } catch (e) {
+    console.error("Socket.IO Redis adapter failed:", String(e));
+  }
+}
+
 setupLiveMatch(io, prisma);
 
 // Anti-cheat consumer reads the events stream (no-op unless ANTICHEAT_CONSUMER + REDIS_URL).

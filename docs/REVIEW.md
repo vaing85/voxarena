@@ -40,6 +40,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 
 | Area | Notes |
 |------|--------|
+| **Hardening** | Done: per-IP rate limiting (general + tighter on audio scoring; `X-RateLimit-*`/`429`), per-request access logs, and a Socket.IO **Redis adapter** so room broadcasts span instances. Remaining (optional): shared rate-limit store for multi-instance fairness, error tracking/metrics, WebRTC streaming. |
 | **Scoring engine (real)** | Complete — **all five layers real**, end-to-end: web client records the **mic** (Web Audio → in-browser WAV) or uploads a WAV → `POST /performances/audio` → Node calls the PYIN service → **A pitch** + **B timing** + **C stability** + **D dynamics** + **E transitions** stored (`Song.referenceNotes` holds the reference melody). A stub fills any layer the audio can't exercise (e.g. a single-note song has no transitions). |
 | **Live PvP (realtime)** | Socket.IO coordination shipped: rooms, presence, synced countdown/start, opponent-progress relay, authoritative `match:result` push on ranked finalize, and **reconnect/resume** (a dropped player doesn't forfeit; on re-join the server replays a `match:state` snapshot — resumes the in-progress countdown via `Match.startedAt`, or returns the result if it finished). Still TODO: client UI (incl. on-device match persistence + idempotent submit retry), mic streaming/WebRTC. |
 | **Read endpoints** | Done: `GET /players/:id` (profile + stats), `/players/:id/performances`, `/players/:id/matches`. |
