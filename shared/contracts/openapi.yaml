@@ -132,6 +132,87 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "503": { $ref: "#/components/responses/AuthNotConfigured" }
 
+  /players/{id}:
+    get:
+      tags: [Players]
+      summary: Public player profile + lifetime stats
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Profile (email omitted) with winRate, bestScoreTotal, performanceCount
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  name: { type: string, nullable: true }
+                  mmr: { type: integer }
+                  tier: { type: string }
+                  matchesPlayed: { type: integer }
+                  matchesWon: { type: integer }
+                  winRate: { type: number }
+                  bestScoreTotal: { type: number, nullable: true }
+                  performanceCount: { type: integer }
+                  createdAt: { type: string, format: date-time }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /players/{id}/performances:
+    get:
+      tags: [Players]
+      summary: A player's recent performances (most recent first)
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200":
+          description: Performances with song info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  playerId: { type: string, format: uuid }
+                  performances:
+                    type: array
+                    items: { $ref: "#/components/schemas/Performance" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /players/{id}/matches:
+    get:
+      tags: [Players]
+      summary: A player's recent completed matches, framed from their view
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200":
+          description: Matches with your/opponent scores and outcome
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  playerId: { type: string, format: uuid }
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        matchId: { type: string, format: uuid }
+                        difficulty: { type: string }
+                        yourScore: { type: number, nullable: true }
+                        opponentId: { type: string, format: uuid }
+                        opponentScore: { type: number, nullable: true }
+                        won: { type: boolean }
+                        playedAt: { type: string, format: date-time }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
   /performances:
     post:
       tags: [Performances]
