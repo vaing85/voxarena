@@ -44,7 +44,7 @@ Review of the repo against the [ARCHITECTURE](ARCHITECTURE.md) and [MVP.md](MVP.
 | **Live PvP (realtime)** | Socket.IO coordination shipped: rooms, presence, synced countdown/start, opponent-progress relay, authoritative `match:result` push on ranked finalize, and **reconnect/resume** (a dropped player doesn't forfeit; on re-join the server replays a `match:state` snapshot — resumes the in-progress countdown via `Match.startedAt`, or returns the result if it finished). Still TODO: client UI (incl. on-device match persistence + idempotent submit retry), mic streaming/WebRTC. |
 | **Anti-cheat** | Fingerprinting, review queue. |
 | **Event consumer** | API now emits `performance.recorded` / `match.completed` / `entitlement.granted` to the Redis Stream `voxarena:events`. A consumer (analytics / anti-cheat ingestion) is still TODO. |
-| **Game client** | Web app started in `clients/app` (React + Vite PWA): solo record→score→leaderboard loop. TODO: live PvP UI (Socket.IO + on-device resume), store checkout, Supabase login; native (Unity/Godot) still open. |
+| **Game client** | Web app in `clients/app` (React + Vite PWA): solo record→score→leaderboard loop **and live PvP** (matchmaking → synced countdown → sing → opponent progress → result, with on-device match persistence + reconnect/resume). TODO: store checkout, Supabase login, PWA offline; native (Unity/Godot) still open. |
 
 ---
 

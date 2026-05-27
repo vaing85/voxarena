@@ -51,6 +51,14 @@ export type LeaderboardEntry = Performance & {
   player?: { id: string; name: string | null };
 };
 
+export type RankedJoin = {
+  status: "queued" | "matched";
+  songId: string;
+  matchId?: string;
+  player1Id?: string;
+  player2Id?: string;
+};
+
 export type Pack = {
   id: string;
   slug: string;
@@ -110,18 +118,32 @@ export const api = {
   listPacks: (playerId: string | null) =>
     get<{ packs: Pack[] }>("/store/packs", playerId).then((r) => r.packs),
 
+  joinRanked: (playerId: string, songId: string) =>
+    postJson<RankedJoin>("/matchmaking/ranked/join", { playerId, songId }, playerId),
+
+  leaveRanked: (playerId: string) =>
+    postJson<{ left: boolean }>("/matchmaking/ranked/leave", { playerId }, playerId),
+
+  pendingMatch: (playerId: string) =>
+    get<{ playerId: string; matchId: string | null }>(
+      `/matchmaking/ranked/pending/${playerId}`,
+      playerId
+    ),
+
   /** Submit recorded audio for real server-side scoring. */
   async scoreAudio(
     playerId: string,
     songId: string,
     mode: string,
-    audio: Blob
+    audio: Blob,
+    matchId?: string
   ): Promise<AudioScore> {
     const form = new FormData();
     form.append("audio", audio, "take.wav");
     form.append("playerId", playerId);
     form.append("songId", songId);
     form.append("mode", mode);
+    if (matchId) form.append("matchId", matchId);
     // No Content-Type header — the browser sets the multipart boundary.
     const res = await fetch(`${API_BASE}/performances/audio`, {
       method: "POST",
