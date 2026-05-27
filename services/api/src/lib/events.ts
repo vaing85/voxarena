@@ -123,3 +123,22 @@ export function emitEntitlementGranted(e: EntitlementEvent): Promise<void> {
     stripeSessionId: e.stripeSessionId ?? null,
   });
 }
+
+export type CosmeticEvent = {
+  playerId: string;
+  cosmeticItemId: string;
+  source: "purchase" | "grant";
+  stripeSessionId?: string | null;
+};
+
+export function emitCosmeticGranted(e: CosmeticEvent): Promise<void> {
+  return publish({
+    event: "cosmetic.granted",
+    version: 1,
+    occurredAt: now(),
+    playerId: e.playerId,
+    cosmeticItemId: e.cosmeticItemId,
+    source: e.source,
+    stripeSessionId: e.stripeSessionId ?? null,
+  });
+}

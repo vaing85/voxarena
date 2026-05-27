@@ -20,6 +20,7 @@ tags:
   - name: Matchmaking
   - name: Bot
   - name: Store
+  - name: Cosmetics
 
 paths:
   /health:
@@ -528,6 +529,107 @@ paths:
         "200": { description: "{ received: true }" }
         "400": { description: Invalid signature }
         "503": { description: Webhook not configured }
+
+  /cosmetics:
+    get:
+      tags: [Cosmetics]
+      summary: List active cosmetic items
+      description: Public; includes `owned` and `equipped` per item when authenticated.
+      security:
+        - {}
+        - bearerAuth: []
+        - devPlayerId: []
+      responses:
+        "200":
+          description: Active cosmetics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cosmetics:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        slug: { type: string }
+                        name: { type: string }
+                        description: { type: string, nullable: true }
+                        category: { type: string }
+                        priceCents: { type: integer }
+                        currency: { type: string }
+                        purchasable: { type: boolean }
+                        owned: { type: boolean }
+                        equipped: { type: boolean }
+
+  /cosmetics/checkout:
+    post:
+      tags: [Cosmetics]
+      summary: Start a Stripe Checkout session for a cosmetic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cosmeticItemId]
+              properties:
+                cosmeticItemId: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Checkout session URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+                  sessionId: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Not purchasable yet, or already owned }
+        "503": { description: Payments not configured (STRIPE_SECRET_KEY) }
+
+  /cosmetics/equip:
+    post:
+      tags: [Cosmetics]
+      summary: Equip an owned cosmetic (unequips others in its category)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cosmeticItemId]
+              properties:
+                cosmeticItemId: { type: string, format: uuid }
+      responses:
+        "200":
+          description: "{ equipped, category }"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: You do not own this cosmetic }
+
+  /cosmetics/unequip:
+    post:
+      tags: [Cosmetics]
+      summary: Unequip an owned cosmetic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cosmeticItemId]
+              properties:
+                cosmeticItemId: { type: string, format: uuid }
+      responses:
+        "200":
+          description: "{ unequipped: boolean }"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
 
 components:
   securitySchemes:

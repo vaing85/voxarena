@@ -6,6 +6,7 @@ import {
   grantEntitlementFromSession,
   ownedPackIds,
 } from "../lib/entitlements.js";
+import { grantCosmeticFromSession } from "../lib/cosmetics.js";
 
 export function storeRouter(prisma: PrismaClient): Router {
   const r = Router();
@@ -115,11 +116,18 @@ export function storeWebhookHandler(prisma: PrismaClient) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as {
         id?: string;
-        metadata?: { playerId?: string; packId?: string } | null;
+        metadata?: {
+          playerId?: string;
+          packId?: string;
+          cosmeticItemId?: string;
+        } | null;
       };
-      const result = await grantEntitlementFromSession(prisma, session);
+      // One webhook serves both products; branch on the session metadata.
+      const result = session.metadata?.cosmeticItemId
+        ? await grantCosmeticFromSession(prisma, session)
+        : await grantEntitlementFromSession(prisma, session);
       if (!result.granted) {
-        console.warn("Stripe webhook: entitlement not granted —", result.reason);
+        console.warn("Stripe webhook: grant skipped —", result.reason);
       }
     }
 

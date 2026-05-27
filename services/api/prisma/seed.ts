@@ -64,6 +64,22 @@ async function main() {
     });
   }
 
+  // Demo cosmetic items (one per category). No Stripe price yet, so they show
+  // in the catalog but aren't purchasable until a price is wired (like packs).
+  const cosmetics = [
+    { slug: "frame-gold", name: "Gold Frame", category: "frame", priceCents: 299 },
+    { slug: "frame-neon", name: "Neon Frame", category: "frame", priceCents: 299 },
+    { slug: "title-virtuoso", name: "Virtuoso", category: "title", priceCents: 199 },
+    { slug: "color-sunset", name: "Sunset Name", category: "color", priceCents: 149 },
+  ];
+  for (const c of cosmetics) {
+    await prisma.cosmeticItem.upsert({
+      where: { slug: c.slug },
+      update: {},
+      create: c,
+    });
+  }
+
   // Demo player.
   let player = await prisma.player.findFirst({ where: { name: "Demo Player" } });
   if (!player) {

@@ -30,6 +30,7 @@ model Player {
   matchesAs1   Match[]       @relation("Player1Matches")
   matchesAs2   Match[]       @relation("Player2Matches")
   entitlements Entitlement[]
+  cosmetics    CosmeticOwnership[]
 }
 
 model Song {
@@ -90,6 +91,44 @@ model Entitlement {
   pack   SongPack @relation(fields: [packId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, packId])
+  @@index([playerId])
+}
+
+model CosmeticItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  slug        String  @unique
+  name        String
+  description String?
+  /// Display category — at most one equipped per category (e.g. frame | title | color).
+  category String
+
+  priceCents Int    @default(0)
+  currency   String @default("usd")
+  /// Stripe Price id; null until wired (item not purchasable yet).
+  stripePriceId String?
+  active        Boolean @default(true)
+
+  ownerships CosmeticOwnership[]
+}
+
+model CosmeticOwnership {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  playerId       String
+  cosmeticItemId String
+  source         String  @default("purchase") // purchase | grant
+  equipped       Boolean @default(false)
+
+  /// Stripe Checkout Session id — unique so webhook delivery is idempotent.
+  stripeSessionId String? @unique
+
+  player Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  item   CosmeticItem @relation(fields: [cosmeticItemId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, cosmeticItemId])
   @@index([playerId])
 }
 

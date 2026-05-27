@@ -85,7 +85,10 @@ The `playerId` in a request body must match the authenticated identity, or the A
 | POST | `/bot/solo-vs-bot` | 🔒 `{ playerId, songId, botPreset }` — optional full scores or stub |
 | GET | `/store/packs` | Song packs; includes `owned` when authenticated |
 | POST | `/store/checkout` | 🔒 `{ packId }` → Stripe Checkout `{ url }` (needs `STRIPE_SECRET_KEY`) |
-| POST | `/store/webhook` | Stripe events (raw body, signature-verified) → grants entitlements |
+| POST | `/store/webhook` | Stripe events (raw body, signature-verified) → grants entitlements & cosmetics |
+| GET | `/cosmetics` | Cosmetic items; includes `owned`/`equipped` when authenticated |
+| POST | `/cosmetics/checkout` | 🔒 `{ cosmeticItemId }` → Stripe Checkout `{ url }` |
+| POST | `/cosmetics/equip` · `/cosmetics/unequip` | 🔒 `{ cosmeticItemId }` — one equipped per category |
 
 🔒 = requires auth (Bearer token, or `x-player-id` header in dev bypass). Modes: `solo_practice`, `solo_vs_bot`, `ranked_pvp`, `tournament`. Locked songs (in a pack you don't own) return `403` when you try to play them.
 
